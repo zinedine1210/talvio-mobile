@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/formatters.dart';
 import '../providers/employee_providers.dart';
 
 final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
@@ -29,7 +30,9 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
   late final _positionController =
       TextEditingController(text: widget.employee?['position']?.toString() ?? '');
   late final _salaryController = TextEditingController(
-      text: (widget.employee?['base_salary'] ?? '').toString());
+      text: widget.employee?['base_salary'] != null
+          ? formatRupiah((widget.employee!['base_salary'] as num).toInt())
+          : '');
 
   late String _role = widget.employee?['role']?.toString() ?? 'employee';
   late int? _departmentId = widget.employee?['department_id'] as int?;
@@ -72,7 +75,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
       'department_id': _departmentId,
       'supervisor_id': _supervisorId,
       'position': _positionController.text.trim(),
-      'base_salary': double.tryParse(_salaryController.text) ?? 0,
+      'base_salary': parseRupiahInput(_salaryController.text),
       if (_joinDate != null)
         'join_date':
             '${_joinDate!.year.toString().padLeft(4, '0')}-${_joinDate!.month.toString().padLeft(2, '0')}-${_joinDate!.day.toString().padLeft(2, '0')}',
@@ -185,7 +188,8 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
               TextFormField(
                 controller: _salaryController,
                 decoration: const InputDecoration(labelText: 'Gaji Pokok'),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: TextInputType.number,
+                inputFormatters: [RupiahInputFormatter()],
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
@@ -237,9 +241,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Tanggal Bergabung'),
-                trailing: Text(_joinDate == null
-                    ? 'Pilih tanggal'
-                    : '${_joinDate!.year}-${_joinDate!.month.toString().padLeft(2, '0')}-${_joinDate!.day.toString().padLeft(2, '0')}'),
+                trailing: Text(_joinDate == null ? 'Pilih tanggal' : formatDateLong(_joinDate!)),
                 onTap: _pickJoinDate,
               ),
               const SizedBox(height: 24),
