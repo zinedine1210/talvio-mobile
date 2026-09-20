@@ -7,6 +7,8 @@ import '../features/employee/presentation/employee_list_screen.dart';
 import '../features/employee/presentation/employee_form_screen.dart';
 import '../features/employee/presentation/department_list_screen.dart';
 import '../features/employee/presentation/my_profile_screen.dart';
+import '../features/attendance/presentation/attendance_screen.dart';
+import '../features/attendance/presentation/camera_capture_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/register-company',
@@ -47,6 +49,14 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/profile',
       builder: (context, state) => const MyProfileScreen(),
+    ),
+    GoRoute(
+      path: '/attendance',
+      builder: (context, state) => const AttendanceScreen(),
+    ),
+    GoRoute(
+      path: '/attendance/capture',
+      builder: (context, state) => const CameraCaptureScreen(),
     ),
   ],
 );
