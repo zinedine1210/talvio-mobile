@@ -19,6 +19,18 @@ class MyProfileScreen extends ConsumerWidget {
         data: (me) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            Center(
+              child: CircleAvatar(
+                radius: 48,
+                backgroundImage: (me['photo_url'] as String?)?.isNotEmpty == true
+                    ? NetworkImage(me['photo_url'] as String)
+                    : null,
+                child: (me['photo_url'] as String?)?.isNotEmpty != true
+                    ? const Icon(Icons.person, size: 48)
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 16),
             _ProfileRow(label: t.nameLabel, value: me['name']?.toString()),
             _ProfileRow(label: t.emailLabel, value: me['email']?.toString()),
             _ProfileRow(label: t.phoneLabel, value: me['phone']?.toString()),

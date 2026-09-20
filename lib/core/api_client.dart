@@ -31,7 +31,7 @@ final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(BaseOptions(baseUrl: apiBaseUrl));
   dio.interceptors.add(
     InterceptorsWrapper(
-      onRequest: (options, handler) {
+      onRequest: (options, handler) async {
         final token = ref.read(authTokenProvider);
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
@@ -39,14 +39,29 @@ final dioProvider = Provider<Dio>((ref) {
 
         final timestamp =
             (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString();
-        final body = options.data == null ? '' : jsonEncode(options.data);
         options.headers['X-Timestamp'] = timestamp;
-        options.headers['X-Signature'] = signRequest(
-          timestamp: timestamp,
-          method: options.method,
-          path: options.path,
-          body: body,
-        );
+
+        if (options.data is FormData) {
+          // Sign the exact multipart bytes via a same-boundary clone, so
+          // the original FormData is left untouched for Dio to actually
+          // send — jsonEncode can't handle FormData, and re-stringifying
+          // binary file bytes as a Dart String would corrupt them.
+          final bodyBytes = await (options.data as FormData).clone().readAsBytes();
+          options.headers['X-Signature'] = signRequestWithBytes(
+            timestamp: timestamp,
+            method: options.method,
+            path: options.path,
+            bodyBytes: bodyBytes,
+          );
+        } else {
+          final body = options.data == null ? '' : jsonEncode(options.data);
+          options.headers['X-Signature'] = signRequest(
+            timestamp: timestamp,
+            method: options.method,
+            path: options.path,
+            body: body,
+          );
+        }
 
         handler.next(options);
       },

@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Talvio uses the camera to take employee profile photos and attendance verification photos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Talvio needs photo library access to choose an employee profile photo.</string>
 </dict>
 </plist>

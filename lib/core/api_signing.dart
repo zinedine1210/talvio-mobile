@@ -21,3 +21,19 @@ String signRequest({
   final hmac = Hmac(sha256, utf8.encode(apiSigningSecret));
   return hmac.convert(utf8.encode(payload)).toString();
 }
+
+/// Same scheme as [signRequest], but for a binary body (multipart uploads)
+/// that must never round-trip through a Dart String — UTF-8 re-encoding
+/// would corrupt any raw byte >= 0x80, which the backend's Go
+/// `string(rawBytes)` + `hmac.Write` does NOT do (it hashes the exact bytes
+/// as received). The prefix is plain ASCII so it's safe to encode alone.
+String signRequestWithBytes({
+  required String timestamp,
+  required String method,
+  required String path,
+  required List<int> bodyBytes,
+}) {
+  final prefix = utf8.encode('$timestamp.$method.$path.');
+  final hmac = Hmac(sha256, utf8.encode(apiSigningSecret));
+  return hmac.convert([...prefix, ...bodyBytes]).toString();
+}

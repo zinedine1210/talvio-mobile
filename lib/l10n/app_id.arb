@@ -104,5 +104,10 @@
   "errorInvalidSupervisorReference": "Atasan tidak valid",
   "errorInvalidDateFormat": "Format tanggal tidak valid",
   "errorGeneric": "Terjadi kesalahan, coba lagi",
-  "errorNetworkUnreachable": "Tidak dapat terhubung ke server, cek koneksi internet"
+  "errorNetworkUnreachable": "Tidak dapat terhubung ke server, cek koneksi internet",
+
+  "profilePhotoLabel": "Foto Profil",
+  "takePhotoOption": "Ambil dari Kamera",
+  "choosePhotoOption": "Pilih dari Galeri",
+  "photoUploadedMessage": "Foto berhasil diperbarui"
 }
