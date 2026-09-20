@@ -139,5 +139,22 @@
   "accountSectionTitle": "Account",
   "logoutButton": "Log Out",
   "logoutConfirmTitle": "Log Out",
-  "logoutConfirmMessage": "Are you sure you want to log out?"
+  "logoutConfirmMessage": "Are you sure you want to log out?",
+  "faceMatchRetryTitle": "Face Not Matched",
+  "faceMatchRetryMessage": "Your face doesn't match your profile photo yet. Retake the photo, or submit anyway for HR to review.",
+  "submitAnywayButton": "Submit Anyway",
+  "faceMatchGaveUpMessage": "Face verification didn't succeed after several attempts — attendance was still submitted for HR review.",
+  "pendingReviewMenu": "Review Attendance",
+  "pendingReviewTitle": "Attendance Needing Review",
+  "noPendingReviewMessage": "No attendance records need review",
+  "approveButton": "Approve",
+  "rejectButton": "Reject",
+  "hrNoteLabel": "HR note (optional)",
+  "faceMatchLabel": "Face Match",
+  "radiusStatusLabel": "Location Status",
+  "withinRadiusLabel": "Within radius",
+  "outsideRadiusLabel": "Outside radius",
+  "clockInPhotoLabel": "Clock-in Photo",
+  "clockOutPhotoLabel": "Clock-out Photo",
+  "reviewSuccessMessage": "Review saved successfully"
 }

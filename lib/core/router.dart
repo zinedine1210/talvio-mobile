@@ -9,6 +9,7 @@ import '../features/employee/presentation/department_list_screen.dart';
 import '../features/employee/presentation/my_profile_screen.dart';
 import '../features/attendance/presentation/attendance_screen.dart';
 import '../features/attendance/presentation/camera_capture_screen.dart';
+import '../features/attendance/presentation/pending_review_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/register-company',
@@ -57,6 +58,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/attendance/capture',
       builder: (context, state) => const CameraCaptureScreen(),
+    ),
+    GoRoute(
+      path: '/attendance/pending-review',
+      builder: (context, state) => const PendingReviewScreen(),
     ),
   ],
 );

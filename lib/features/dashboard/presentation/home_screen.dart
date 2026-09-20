@@ -43,6 +43,11 @@ class HomeScreen extends ConsumerWidget {
               title: Text(t.manageDepartmentsMenu),
               onTap: () => context.push('/departments'),
             ),
+            ListTile(
+              leading: const Icon(Icons.rate_review),
+              title: Text(t.pendingReviewMenu),
+              onTap: () => context.push('/attendance/pending-review'),
+            ),
           ],
         ],
       ),

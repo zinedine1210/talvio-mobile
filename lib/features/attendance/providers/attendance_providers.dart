@@ -9,3 +9,8 @@ final myAttendanceProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
   return ref.watch(attendanceApiProvider).getMyAttendance();
 });
+
+final pendingReviewProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(attendanceApiProvider).getPendingReview();
+});
