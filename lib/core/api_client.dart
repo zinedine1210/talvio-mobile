@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'api_signing.dart';
+
 // TODO: Android emulator can't reach localhost — switch to 10.0.2.2 when running there.
-const String apiBaseUrl = 'http://localhost:8080';
+const String apiBaseUrl = 'http://localhost:8081';
 
 class AuthTokenNotifier extends Notifier<String?> {
   @override
@@ -22,6 +26,18 @@ final dioProvider = Provider<Dio>((ref) {
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
+
+        final timestamp =
+            (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString();
+        final body = options.data == null ? '' : jsonEncode(options.data);
+        options.headers['X-Timestamp'] = timestamp;
+        options.headers['X-Signature'] = signRequest(
+          timestamp: timestamp,
+          method: options.method,
+          path: options.path,
+          body: body,
+        );
+
         handler.next(options);
       },
     ),
