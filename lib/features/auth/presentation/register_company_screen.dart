@@ -41,7 +41,8 @@ class _RegisterCompanyScreenState extends ConsumerState<RegisterCompanyScreen> {
             email: _emailController.text.trim(),
             password: _passwordController.text,
           );
-      ref.read(authTokenProvider.notifier).set(result['token'] as String?);
+      ref.read(authTokenProvider.notifier).set(result['access_token'] as String?);
+      ref.read(currentEmployeeProvider.notifier).set(result['employee'] as Map<String, dynamic>?);
       if (!mounted) return;
       context.go('/onboarding');
     } on DioException catch (e) {
