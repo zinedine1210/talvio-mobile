@@ -5,9 +5,10 @@ import '../l10n/app_localizations.dart';
 
 /// Translates an API error (or a raw exception) into a localized,
 /// user-facing message. Backend errors are `{"code": "...", "message": "..."}`
-/// — `code` is looked up against known translations first, falling back to
-/// the backend's own English `message` if the code is unrecognized, and to a
-/// generic message if there's no response at all (network failure).
+/// — `code` is looked up against known translations; an unrecognized code
+/// (including the backend's catch-all `INTERNAL_ERROR`) falls back to a
+/// generic localized message, NEVER the backend's raw English `message` —
+/// that text is for logs/debugging, not something an end user should see.
 String translateError(BuildContext context, Object error) {
   final t = AppLocalizations.of(context)!;
   if (error is DioException) {
@@ -15,8 +16,6 @@ String translateError(BuildContext context, Object error) {
     if (data is Map) {
       final translated = _translateCode(t, data['code']?.toString());
       if (translated != null) return translated;
-      final message = data['message']?.toString();
-      if (message != null && message.isNotEmpty) return message;
     }
     if (error.response == null) return t.errorNetworkUnreachable;
   }
@@ -63,6 +62,8 @@ String? _translateCode(AppLocalizations t, String? code) {
       return t.errorInvalidSupervisorReference;
     case 'INVALID_DATE_FORMAT':
       return t.errorInvalidDateFormat;
+    case 'INTERNAL_ERROR':
+      return t.errorGeneric;
     default:
       return null;
   }

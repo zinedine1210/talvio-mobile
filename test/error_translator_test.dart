@@ -46,9 +46,14 @@ void main() {
     expect(message, 'Email is already registered');
   });
 
-  testWidgets('falls back to backend message for an unknown code', (tester) async {
+  testWidgets('falls back to a generic message for an unknown code (never shows raw backend text)', (tester) async {
     final message = await _translate(tester, _errorWithData({'code': 'SOMETHING_NEW', 'message': 'Backend says hi'}));
-    expect(message, 'Backend says hi');
+    expect(message, 'Terjadi kesalahan, coba lagi');
+  });
+
+  testWidgets('maps INTERNAL_ERROR to the generic message', (tester) async {
+    final message = await _translate(tester, _errorWithData({'code': 'INTERNAL_ERROR', 'message': 'panic: nil pointer'}));
+    expect(message, 'Terjadi kesalahan, coba lagi');
   });
 
   testWidgets('falls back to network-unreachable when there is no response', (tester) async {
