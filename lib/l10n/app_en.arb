@@ -133,5 +133,11 @@
   "errorAlreadyClockedIn": "You've already clocked in today",
   "errorNoteRequiredOutsideRadius": "You're outside the office radius, a note is required",
   "errorNoLocationAssigned": "You haven't been assigned to any office location, contact HR",
-  "errorNoOpenClockin": "You haven't clocked in today"
+  "errorNoOpenClockin": "You haven't clocked in today",
+  "profileSectionTitle": "Profile",
+  "appSectionTitle": "App",
+  "accountSectionTitle": "Account",
+  "logoutButton": "Log Out",
+  "logoutConfirmTitle": "Log Out",
+  "logoutConfirmMessage": "Are you sure you want to log out?"
 }

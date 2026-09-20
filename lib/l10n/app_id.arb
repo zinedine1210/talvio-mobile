@@ -133,5 +133,11 @@
   "errorAlreadyClockedIn": "Anda sudah absen masuk hari ini",
   "errorNoteRequiredOutsideRadius": "Anda di luar radius kantor, catatan wajib diisi",
   "errorNoLocationAssigned": "Anda belum ditempatkan di lokasi kantor mana pun, hubungi HR",
-  "errorNoOpenClockin": "Anda belum absen masuk hari ini"
+  "errorNoOpenClockin": "Anda belum absen masuk hari ini",
+  "profileSectionTitle": "Profil",
+  "appSectionTitle": "Aplikasi",
+  "accountSectionTitle": "Akun",
+  "logoutButton": "Keluar",
+  "logoutConfirmTitle": "Keluar Akun",
+  "logoutConfirmMessage": "Yakin ingin keluar dari akun ini?"
 }
