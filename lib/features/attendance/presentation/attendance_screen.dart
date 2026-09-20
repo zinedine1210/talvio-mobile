@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -11,8 +12,14 @@ import '../../../core/geo.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../employee/providers/employee_providers.dart';
 import '../attendance_status.dart';
+import '../face_matching.dart';
 import '../liveness_check.dart';
 import '../providers/attendance_providers.dart';
+
+/// Max face-match retries before submitting anyway for HR review — per
+/// SPEC.md's "never truly locked out" rule. Liveness has no such cap (that
+/// gate stays retry-until-cancel, unchanged from Fase 2a).
+const _maxFaceMatchAttempts = 3;
 
 /// Clock-in/out flow, in the order fixed by SPEC.md "Urutan Alur
 /// Clock-in/Clock-out": location check first (cheap), then camera +
@@ -101,6 +108,30 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return retry ?? false;
   }
 
+  /// Returns true = retake photo, false = submit anyway, null = cancel.
+  Future<bool?> _showFaceMatchRetryDialog(AppLocalizations t) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(t.faceMatchRetryTitle),
+        content: Text(t.faceMatchRetryMessage),
+        actions: [
+          TextButton(onPressed: () => context.pop(), child: Text(t.cancelButton)),
+          TextButton(onPressed: () => context.pop(false), child: Text(t.submitAnywayButton)),
+          FilledButton(onPressed: () => context.pop(true), child: Text(t.retakeButton)),
+        ],
+      ),
+    );
+  }
+
+  Future<File> _downloadToTempFile(String url) async {
+    final response = await Dio().get<List<int>>(
+      url,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return writeBytesToTempFile(Uint8List.fromList(response.data!), '.jpg');
+  }
+
   void _showMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
@@ -136,20 +167,66 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       }
 
       String? photoPath;
-      while (true) {
-        if (!mounted) return;
-        photoPath = await context.push<String>('/attendance/capture');
-        if (photoPath == null) return; // user backed out of camera
-        final passed = await passesLivenessCheck(photoPath);
-        if (passed) break;
-        if (!mounted) return;
-        final retry = await _showLivenessFailedDialog(t);
-        if (!retry) return;
+      var matchResult = const FaceMatchResult(0, FaceMatchStatus.notChecked);
+      final profilePhotoUrl = me['photo_url'] as String?;
+      final embedder = (profilePhotoUrl != null && profilePhotoUrl.isNotEmpty)
+          ? await FaceEmbedder.load()
+          : null;
+      var matchAttempts = 0;
+      var gaveUpOnMatch = false;
+      try {
+        while (true) {
+          if (!mounted) return;
+          photoPath = await context.push<String>('/attendance/capture');
+          if (photoPath == null) return; // user backed out of camera
+          final passed = await passesLivenessCheck(photoPath);
+          if (!passed) {
+            if (!mounted) return;
+            final retry = await _showLivenessFailedDialog(t);
+            if (!retry) return;
+            continue;
+          }
+
+          if (embedder == null) break; // no profile photo enrolled yet — not_checked
+
+          matchAttempts++;
+          final liveEmbedding = await embedder.embedFaceInImageFile(photoPath);
+          final profileFile = await _downloadToTempFile(profilePhotoUrl!);
+          List<double>? profileEmbedding;
+          try {
+            profileEmbedding = await embedder.embedFaceInImageFile(profileFile.path);
+          } finally {
+            await profileFile.delete();
+          }
+
+          if (liveEmbedding == null || profileEmbedding == null) {
+            matchResult = const FaceMatchResult(0, FaceMatchStatus.notChecked);
+            break;
+          }
+
+          final distance = euclideanDistance(liveEmbedding, profileEmbedding);
+          matchResult = classifyDistance(distance);
+          if (matchResult.status == FaceMatchStatus.match) break;
+          if (matchAttempts >= _maxFaceMatchAttempts) {
+            gaveUpOnMatch = true;
+            break;
+          }
+
+          if (!mounted) return;
+          final choice = await _showFaceMatchRetryDialog(t);
+          if (choice == null) return; // cancel entirely
+          if (choice == false) break; // submit anyway, right now
+          // choice == true -> loop back and retake the photo
+        }
+      } finally {
+        embedder?.close();
       }
 
       final bytes = await File(photoPath).readAsBytes();
       final filename = photoPath.split(Platform.pathSeparator).last;
       final api = ref.read(attendanceApiProvider);
+      final faceScore = matchResult.status == FaceMatchStatus.notChecked ? null : matchResult.score;
+      final faceStatus = matchResult.status.apiValue;
       if (action == AttendanceAction.clockIn) {
         await api.clockIn(
           photoBytes: bytes,
@@ -157,6 +234,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           latitude: position.latitude,
           longitude: position.longitude,
           note: note,
+          faceMatchScore: faceScore,
+          faceMatchStatus: faceStatus,
         );
         _showMessage(t.clockInSuccessMessage);
       } else {
@@ -166,9 +245,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           latitude: position.latitude,
           longitude: position.longitude,
           note: note,
+          faceMatchScore: faceScore,
+          faceMatchStatus: faceStatus,
         );
         _showMessage(t.clockOutSuccessMessage);
       }
+      if (gaveUpOnMatch) _showMessage(t.faceMatchGaveUpMessage);
       ref.invalidate(myAttendanceProvider);
     } on DioException catch (e) {
       if (!mounted) return;

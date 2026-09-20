@@ -139,5 +139,22 @@
   "accountSectionTitle": "Akun",
   "logoutButton": "Keluar",
   "logoutConfirmTitle": "Keluar Akun",
-  "logoutConfirmMessage": "Yakin ingin keluar dari akun ini?"
+  "logoutConfirmMessage": "Yakin ingin keluar dari akun ini?",
+  "faceMatchRetryTitle": "Wajah Belum Cocok",
+  "faceMatchRetryMessage": "Wajah belum cocok dengan foto profil Anda. Coba ambil ulang, atau tetap kirim untuk ditinjau HR.",
+  "submitAnywayButton": "Tetap Kirim",
+  "faceMatchGaveUpMessage": "Verifikasi wajah belum berhasil setelah beberapa kali percobaan, absensi tetap dikirim untuk ditinjau HR.",
+  "pendingReviewMenu": "Tinjau Absensi",
+  "pendingReviewTitle": "Absensi Perlu Ditinjau",
+  "noPendingReviewMessage": "Tidak ada absensi yang perlu ditinjau",
+  "approveButton": "Setujui",
+  "rejectButton": "Tolak",
+  "hrNoteLabel": "Catatan HR (opsional)",
+  "faceMatchLabel": "Kecocokan Wajah",
+  "radiusStatusLabel": "Status Lokasi",
+  "withinRadiusLabel": "Dalam radius",
+  "outsideRadiusLabel": "Di luar radius",
+  "clockInPhotoLabel": "Foto Masuk",
+  "clockOutPhotoLabel": "Foto Keluar",
+  "reviewSuccessMessage": "Peninjauan berhasil disimpan"
 }
