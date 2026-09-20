@@ -17,6 +17,16 @@ class AuthTokenNotifier extends Notifier<String?> {
 
 final authTokenProvider = NotifierProvider<AuthTokenNotifier, String?>(AuthTokenNotifier.new);
 
+class CurrentEmployeeNotifier extends Notifier<Map<String, dynamic>?> {
+  @override
+  Map<String, dynamic>? build() => null;
+
+  void set(Map<String, dynamic>? employee) => state = employee;
+}
+
+final currentEmployeeProvider =
+    NotifierProvider<CurrentEmployeeNotifier, Map<String, dynamic>?>(CurrentEmployeeNotifier.new);
+
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(BaseOptions(baseUrl: apiBaseUrl));
   dio.interceptors.add(
