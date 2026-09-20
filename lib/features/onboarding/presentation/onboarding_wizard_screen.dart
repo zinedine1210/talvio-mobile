@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/error_translator.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/onboarding_providers.dart';
 
 class _LocationEntry {
@@ -74,11 +76,9 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
       if (!mounted) return;
       context.go('/home');
     } on DioException catch (e) {
-      final message = e.response?.data is Map
-          ? (e.response?.data['message'] ?? 'Gagal menyimpan onboarding')
-          : 'Gagal menyimpan onboarding, cek koneksi ke server';
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message.toString())));
+      final message = translateError(context, e);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -86,9 +86,10 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     final steps = [
       Step(
-        title: const Text('Lokasi Kantor'),
+        title: Text(t.officeLocationStep),
         isActive: _currentStep >= 0,
         content: Column(
           children: [
@@ -100,7 +101,10 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
                   children: [
                     Row(
                       children: [
-                        Expanded(child: Text('Lokasi ${i + 1}', style: const TextStyle(fontWeight: FontWeight.bold))),
+                        Expanded(
+                          child: Text(t.locationLabel(i + 1),
+                              style: const TextStyle(fontWeight: FontWeight.bold)),
+                        ),
                         if (_locations.length > 1)
                           IconButton(
                             icon: const Icon(Icons.delete_outline),
@@ -110,21 +114,21 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
                     ),
                     TextField(
                       controller: _locations[i].nameController,
-                      decoration: const InputDecoration(labelText: 'Nama Lokasi (mis. Kantor Pusat)'),
+                      decoration: InputDecoration(labelText: t.locationNameHint),
                     ),
                     TextField(
                       controller: _locations[i].latController,
-                      decoration: const InputDecoration(labelText: 'Latitude'),
+                      decoration: InputDecoration(labelText: t.latitudeLabel),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
                     ),
                     TextField(
                       controller: _locations[i].lngController,
-                      decoration: const InputDecoration(labelText: 'Longitude'),
+                      decoration: InputDecoration(labelText: t.longitudeLabel),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
                     ),
                     TextField(
                       controller: _locations[i].radiusController,
-                      decoration: const InputDecoration(labelText: 'Radius (meter)'),
+                      decoration: InputDecoration(labelText: t.radiusLabel),
                       keyboardType: TextInputType.number,
                     ),
                   ],
@@ -133,65 +137,65 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
             TextButton.icon(
               onPressed: () => setState(() => _locations.add(_LocationEntry())),
               icon: const Icon(Icons.add),
-              label: const Text('Tambah Lokasi'),
+              label: Text(t.addLocationButton),
             ),
           ],
         ),
       ),
       Step(
-        title: const Text('Jam Kerja'),
+        title: Text(t.workHoursStep),
         isActive: _currentStep >= 1,
         content: Column(
           children: [
             ListTile(
-              title: const Text('Jam Masuk'),
+              title: Text(t.clockInTimeLabel),
               trailing: Text(_formatTime(_workStart)),
               onTap: () => _pickTime(true),
             ),
             ListTile(
-              title: const Text('Jam Pulang'),
+              title: Text(t.clockOutTimeLabel),
               trailing: Text(_formatTime(_workEnd)),
               onTap: () => _pickTime(false),
             ),
             TextField(
               controller: _lateToleranceController,
-              decoration: const InputDecoration(labelText: 'Toleransi Telat (menit)'),
+              decoration: InputDecoration(labelText: t.lateToleranceLabel),
               keyboardType: TextInputType.number,
             ),
           ],
         ),
       ),
       Step(
-        title: const Text('Kebijakan Cuti & Lembur'),
+        title: Text(t.leaveOvertimePolicyStep),
         isActive: _currentStep >= 2,
         content: Column(
           children: [
             TextField(
               controller: _leaveQuotaController,
-              decoration: const InputDecoration(labelText: 'Kuota Cuti Default (hari/tahun)'),
+              decoration: InputDecoration(labelText: t.defaultLeaveQuotaLabel),
               keyboardType: TextInputType.number,
             ),
             TextField(
               controller: _overtimeRateController,
-              decoration: const InputDecoration(labelText: 'Rate Lembur (pengali gaji/jam)'),
+              decoration: InputDecoration(labelText: t.overtimeRateLabel),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
             ),
           ],
         ),
       ),
       Step(
-        title: const Text('Payroll'),
+        title: Text(t.payrollStep),
         isActive: _currentStep >= 3,
         content: Column(
           children: [
             TextField(
               controller: _cutoffDayController,
-              decoration: const InputDecoration(labelText: 'Tanggal Cutoff (1-28)'),
+              decoration: InputDecoration(labelText: t.payrollCutoffLabel),
               keyboardType: TextInputType.number,
             ),
             TextField(
               controller: _payDayController,
-              decoration: const InputDecoration(labelText: 'Tanggal Gajian (1-28)'),
+              decoration: InputDecoration(labelText: t.payrollPayDayLabel),
               keyboardType: TextInputType.number,
             ),
           ],
@@ -200,14 +204,14 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Setup Awal Perusahaan')),
+      appBar: AppBar(title: Text(t.companySetupTitle)),
       body: Stepper(
         currentStep: _currentStep,
         steps: steps,
         onStepContinue: () {
           if (_currentStep == 0 && !_locationsValid) {
             ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Lengkapi data lokasi dengan benar')));
+                .showSnackBar(SnackBar(content: Text(t.completeLocationDataWarning)));
             return;
           }
           if (_currentStep < steps.length - 1) {
@@ -229,10 +233,10 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Text(_currentStep == steps.length - 1 ? 'Selesai' : 'Lanjut'),
+                    : Text(_currentStep == steps.length - 1 ? t.finishButton : t.continueButton),
               ),
               if (details.onStepCancel != null)
-                TextButton(onPressed: details.onStepCancel, child: const Text('Kembali')),
+                TextButton(onPressed: details.onStepCancel, child: Text(t.backButton)),
             ],
           ),
         ),

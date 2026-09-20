@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/api_client.dart';
+import '../../../core/error_translator.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/auth_providers.dart';
 
 final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
@@ -46,11 +48,9 @@ class _RegisterCompanyScreenState extends ConsumerState<RegisterCompanyScreen> {
       if (!mounted) return;
       context.go('/onboarding');
     } on DioException catch (e) {
-      final message = e.response?.data is Map
-          ? (e.response?.data['message'] ?? 'Registrasi gagal')
-          : 'Registrasi gagal, cek koneksi ke server';
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message.toString())));
+      final message = translateError(context, e);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -58,8 +58,9 @@ class _RegisterCompanyScreenState extends ConsumerState<RegisterCompanyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Daftarkan Perusahaan')),
+      appBar: AppBar(title: Text(t.registerCompanyTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -68,32 +69,32 @@ class _RegisterCompanyScreenState extends ConsumerState<RegisterCompanyScreen> {
             children: [
               TextFormField(
                 controller: _companyNameController,
-                decoration: const InputDecoration(labelText: 'Nama Perusahaan'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Wajib diisi' : null,
+                decoration: InputDecoration(labelText: t.companyNameLabel),
+                validator: (v) => (v == null || v.trim().isEmpty) ? t.requiredField : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _adminNameController,
-                decoration: const InputDecoration(labelText: 'Nama Admin HR'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Wajib diisi' : null,
+                decoration: InputDecoration(labelText: t.adminNameLabel),
+                validator: (v) => (v == null || v.trim().isEmpty) ? t.requiredField : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: InputDecoration(labelText: t.emailLabel),
                 keyboardType: TextInputType.emailAddress,
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Wajib diisi';
-                  if (!_emailRegex.hasMatch(v.trim())) return 'Email tidak valid';
+                  if (v == null || v.trim().isEmpty) return t.requiredField;
+                  if (!_emailRegex.hasMatch(v.trim())) return t.invalidEmail;
                   return null;
                 },
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
+                decoration: InputDecoration(labelText: t.passwordLabel),
                 obscureText: true,
-                validator: (v) => (v == null || v.length < 6) ? 'Minimal 6 karakter' : null,
+                validator: (v) => (v == null || v.length < 6) ? t.minLength6 : null,
               ),
               const SizedBox(height: 24),
               FilledButton(
@@ -104,11 +105,11 @@ class _RegisterCompanyScreenState extends ConsumerState<RegisterCompanyScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Daftar'),
+                    : Text(t.registerButton),
               ),
               TextButton(
                 onPressed: () => context.go('/login'),
-                child: const Text('Sudah punya akun? Login'),
+                child: Text(t.alreadyHaveAccountLink),
               ),
             ],
           ),

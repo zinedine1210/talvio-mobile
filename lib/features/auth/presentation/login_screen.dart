@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/api_client.dart';
+import '../../../core/error_translator.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/auth_providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -38,11 +40,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       context.go('/home');
     } on DioException catch (e) {
-      final message = e.response?.data is Map
-          ? (e.response?.data['message'] ?? 'Login gagal')
-          : 'Login gagal, cek koneksi ke server';
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message.toString())));
+      final message = translateError(context, e);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -50,8 +50,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      appBar: AppBar(title: Text(t.loginTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -60,16 +61,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             children: [
               TextFormField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: InputDecoration(labelText: t.emailLabel),
                 keyboardType: TextInputType.emailAddress,
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Wajib diisi' : null,
+                validator: (v) => (v == null || v.trim().isEmpty) ? t.requiredField : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
+                decoration: InputDecoration(labelText: t.passwordLabel),
                 obscureText: true,
-                validator: (v) => (v == null || v.isEmpty) ? 'Wajib diisi' : null,
+                validator: (v) => (v == null || v.isEmpty) ? t.requiredField : null,
               ),
               const SizedBox(height: 24),
               FilledButton(
@@ -80,11 +81,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Login'),
+                    : Text(t.loginButton),
               ),
               TextButton(
                 onPressed: () => context.go('/register-company'),
-                child: const Text('Daftarkan perusahaan baru'),
+                child: Text(t.registerNewCompanyLink),
               ),
             ],
           ),

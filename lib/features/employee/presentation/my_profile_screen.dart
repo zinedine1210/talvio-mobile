@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/error_translator.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/employee_providers.dart';
 
 class MyProfileScreen extends ConsumerWidget {
@@ -7,21 +9,22 @@ class MyProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context)!;
     final meAsync = ref.watch(myProfileProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Profil Saya')),
+      appBar: AppBar(title: Text(t.myProfileMenu)),
       body: meAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Gagal memuat profil: $e')),
+        error: (e, _) => Center(child: Text(translateError(context, e))),
         data: (me) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _ProfileRow(label: 'Nama', value: me['name']?.toString()),
-            _ProfileRow(label: 'Email', value: me['email']?.toString()),
-            _ProfileRow(label: 'Telepon', value: me['phone']?.toString()),
-            _ProfileRow(label: 'Jabatan', value: me['position']?.toString()),
-            _ProfileRow(label: 'Role', value: me['role']?.toString()),
-            _ProfileRow(label: 'Status', value: me['status']?.toString()),
+            _ProfileRow(label: t.nameLabel, value: me['name']?.toString()),
+            _ProfileRow(label: t.emailLabel, value: me['email']?.toString()),
+            _ProfileRow(label: t.phoneLabel, value: me['phone']?.toString()),
+            _ProfileRow(label: t.positionLabel, value: me['position']?.toString()),
+            _ProfileRow(label: t.roleLabel, value: me['role']?.toString()),
+            _ProfileRow(label: t.statusLabel, value: me['status']?.toString()),
           ],
         ),
       ),

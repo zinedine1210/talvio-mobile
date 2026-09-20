@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/error_translator.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/employee_providers.dart';
 
 class EmployeeListScreen extends ConsumerWidget {
@@ -8,15 +10,16 @@ class EmployeeListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context)!;
     final employeesAsync = ref.watch(employeeListProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Karyawan'),
+        title: Text(t.employeesTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.apartment),
-            tooltip: 'Kelola Departemen',
+            tooltip: t.manageDepartmentsMenu,
             onPressed: () => context.push('/departments'),
           ),
         ],
@@ -30,10 +33,10 @@ class EmployeeListScreen extends ConsumerWidget {
       ),
       body: employeesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Gagal memuat data: $e')),
+        error: (e, _) => Center(child: Text(translateError(context, e))),
         data: (employees) {
           if (employees.isEmpty) {
-            return const Center(child: Text('Belum ada karyawan'));
+            return Center(child: Text(t.noEmployeesYet));
           }
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(employeeListProvider),
@@ -47,7 +50,7 @@ class EmployeeListScreen extends ConsumerWidget {
                   title: Text(e['name']?.toString() ?? '-'),
                   subtitle: Text('${e['email'] ?? '-'} · ${e['position'] ?? '-'}'),
                   trailing: Chip(
-                    label: Text(isActive ? 'Aktif' : 'Nonaktif'),
+                    label: Text(isActive ? t.activeStatus : t.inactiveStatus),
                     backgroundColor: isActive ? Colors.green.shade100 : Colors.grey.shade300,
                   ),
                   onTap: () async {
