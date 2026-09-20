@@ -109,5 +109,29 @@
   "profilePhotoLabel": "Profile Photo",
   "takePhotoOption": "Take Photo",
   "choosePhotoOption": "Choose from Gallery",
-  "photoUploadedMessage": "Photo updated successfully"
+  "photoUploadedMessage": "Photo updated successfully",
+
+  "workLocationLabel": "Work Location",
+  "attendanceMenu": "Attendance",
+  "attendanceTitle": "Attendance",
+  "clockInButton": "Clock In",
+  "clockOutButton": "Clock Out",
+  "alreadyClockedTodayMessage": "You've completed your attendance for today",
+  "outsideRadiusTitle": "You're Outside the Office Radius",
+  "outsideRadiusMessage": "Please add a note explaining why before continuing.",
+  "noteLabel": "Note",
+  "submitButton": "Submit",
+  "livenessFailedTitle": "Face Not Detected",
+  "livenessFailedMessage": "Your face wasn't detected clearly, make sure there's enough light and try again.",
+  "retakeButton": "Retake",
+  "clockInSuccessMessage": "Clock-in successful",
+  "clockOutSuccessMessage": "Clock-out successful",
+  "locationServiceDisabledError": "Turn on location services on your device",
+  "locationPermissionDeniedError": "Location permission is required for attendance",
+  "noLocationAssignedError": "You haven't been assigned to any office location, contact HR",
+
+  "errorAlreadyClockedIn": "You've already clocked in today",
+  "errorNoteRequiredOutsideRadius": "You're outside the office radius, a note is required",
+  "errorNoLocationAssigned": "You haven't been assigned to any office location, contact HR",
+  "errorNoOpenClockin": "You haven't clocked in today"
 }

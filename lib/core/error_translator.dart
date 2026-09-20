@@ -64,6 +64,14 @@ String? _translateCode(AppLocalizations t, String? code) {
       return t.errorInvalidDateFormat;
     case 'INTERNAL_ERROR':
       return t.errorGeneric;
+    case 'ALREADY_CLOCKED_IN':
+      return t.errorAlreadyClockedIn;
+    case 'NOTE_REQUIRED_OUTSIDE_RADIUS':
+      return t.errorNoteRequiredOutsideRadius;
+    case 'NO_LOCATION_ASSIGNED':
+      return t.errorNoLocationAssigned;
+    case 'NO_OPEN_CLOCKIN':
+      return t.errorNoOpenClockin;
     default:
       return null;
   }

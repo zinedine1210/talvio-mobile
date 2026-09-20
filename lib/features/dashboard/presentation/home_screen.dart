@@ -34,6 +34,11 @@ class HomeScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          ListTile(
+            leading: const Icon(Icons.fingerprint),
+            title: Text(t.attendanceMenu),
+            onTap: () => context.push('/attendance'),
+          ),
           if (isHr) ...[
             ListTile(
               leading: const Icon(Icons.people),

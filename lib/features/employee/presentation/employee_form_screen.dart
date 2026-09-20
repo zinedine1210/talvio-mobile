@@ -40,6 +40,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
   late String _role = widget.employee?['role']?.toString() ?? 'employee';
   late int? _departmentId = widget.employee?['department_id'] as int?;
   late int? _supervisorId = widget.employee?['supervisor_id'] as int?;
+  late int? _locationId = widget.employee?['location_id'] as int?;
   late DateTime? _joinDate = widget.employee?['join_date'] != null
       ? DateTime.tryParse(widget.employee!['join_date'].toString())
       : null;
@@ -126,6 +127,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
       'role': _role,
       'department_id': _departmentId,
       'supervisor_id': _supervisorId,
+      'location_id': _locationId,
       'position': _positionController.text.trim(),
       'base_salary': parseRupiahInput(_salaryController.text),
       if (_joinDate != null)
@@ -182,6 +184,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
     final t = AppLocalizations.of(context)!;
     final departmentsAsync = ref.watch(departmentListProvider);
     final employeesAsync = ref.watch(employeeListProvider);
+    final locationsAsync = ref.watch(locationListProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -298,6 +301,23 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                         )),
                   ],
                   onChanged: (v) => setState(() => _departmentId = v),
+                ),
+              ),
+              const SizedBox(height: 12),
+              locationsAsync.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (e, _) => Text(translateError(context, e)),
+                data: (locations) => DropdownButtonFormField<int?>(
+                  initialValue: _locationId,
+                  decoration: InputDecoration(labelText: t.workLocationLabel),
+                  items: [
+                    DropdownMenuItem(value: null, child: Text(t.noneOption)),
+                    ...locations.map((l) => DropdownMenuItem(
+                          value: l['id'] as int,
+                          child: Text(l['name']?.toString() ?? '-'),
+                        )),
+                  ],
+                  onChanged: (v) => setState(() => _locationId = v),
                 ),
               ),
               const SizedBox(height: 12),

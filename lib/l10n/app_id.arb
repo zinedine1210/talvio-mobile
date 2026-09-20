@@ -109,5 +109,29 @@
   "profilePhotoLabel": "Foto Profil",
   "takePhotoOption": "Ambil dari Kamera",
   "choosePhotoOption": "Pilih dari Galeri",
-  "photoUploadedMessage": "Foto berhasil diperbarui"
+  "photoUploadedMessage": "Foto berhasil diperbarui",
+
+  "workLocationLabel": "Lokasi Kantor",
+  "attendanceMenu": "Absensi",
+  "attendanceTitle": "Absensi",
+  "clockInButton": "Absen Masuk",
+  "clockOutButton": "Absen Pulang",
+  "alreadyClockedTodayMessage": "Anda sudah menyelesaikan absensi hari ini",
+  "outsideRadiusTitle": "Anda di Luar Radius Kantor",
+  "outsideRadiusMessage": "Mohon isi catatan/alasan sebelum melanjutkan absensi.",
+  "noteLabel": "Catatan",
+  "submitButton": "Kirim",
+  "livenessFailedTitle": "Wajah Tidak Terdeteksi",
+  "livenessFailedMessage": "Wajah tidak terdeteksi jelas, pastikan pencahayaan cukup dan coba lagi.",
+  "retakeButton": "Ambil Ulang",
+  "clockInSuccessMessage": "Absen masuk berhasil",
+  "clockOutSuccessMessage": "Absen pulang berhasil",
+  "locationServiceDisabledError": "Aktifkan layanan lokasi di perangkat Anda",
+  "locationPermissionDeniedError": "Izin lokasi diperlukan untuk absensi",
+  "noLocationAssignedError": "Anda belum ditempatkan di lokasi kantor mana pun, hubungi HR",
+
+  "errorAlreadyClockedIn": "Anda sudah absen masuk hari ini",
+  "errorNoteRequiredOutsideRadius": "Anda di luar radius kantor, catatan wajib diisi",
+  "errorNoLocationAssigned": "Anda belum ditempatkan di lokasi kantor mana pun, hubungi HR",
+  "errorNoOpenClockin": "Anda belum absen masuk hari ini"
 }

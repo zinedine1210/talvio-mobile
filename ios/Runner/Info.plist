@@ -49,5 +49,7 @@
 	<string>Talvio uses the camera to take employee profile photos and attendance verification photos.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Talvio needs photo library access to choose an employee profile photo.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Talvio needs your location to verify you are at the office when you clock in or out.</string>
 </dict>
 </plist>
