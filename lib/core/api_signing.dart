@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
-/// Must match `API_SIGNING_SECRET` in presensia-backend's .env exactly.
+/// Must match `API_SIGNING_SECRET` in talvio-backend's .env exactly.
 ///
 /// This ships inside the compiled app binary, so it's defense-in-depth
 /// against generic bot/script traffic hitting the API directly — NOT a

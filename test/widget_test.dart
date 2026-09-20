@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:presensia_mobile/features/auth/presentation/register_company_screen.dart';
+import 'package:talvio_mobile/features/auth/presentation/register_company_screen.dart';
 
 void main() {
   testWidgets('register company form shows validation errors on empty submit',
