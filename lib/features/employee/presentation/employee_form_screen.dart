@@ -73,7 +73,9 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
       'supervisor_id': _supervisorId,
       'position': _positionController.text.trim(),
       'base_salary': double.tryParse(_salaryController.text) ?? 0,
-      if (_joinDate != null) 'join_date': _joinDate!.toUtc().toIso8601String(),
+      if (_joinDate != null)
+        'join_date':
+            '${_joinDate!.year.toString().padLeft(4, '0')}-${_joinDate!.month.toString().padLeft(2, '0')}-${_joinDate!.day.toString().padLeft(2, '0')}',
       if (!_isEditing) 'email': _emailController.text.trim(),
       if (!_isEditing) 'password': _passwordController.text,
     };
