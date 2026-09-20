@@ -50,4 +50,9 @@ class EmployeeApi {
     final res = await _dio.post('/departments', data: {'name': name});
     return res.data as Map<String, dynamic>;
   }
+
+  Future<List<Map<String, dynamic>>> listLocations() async {
+    final res = await _dio.get('/company/locations');
+    return (res.data as List).cast<Map<String, dynamic>>();
+  }
 }

@@ -17,3 +17,8 @@ final departmentListProvider =
 final myProfileProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
   return ref.watch(employeeApiProvider).getMe();
 });
+
+final locationListProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(employeeApiProvider).listLocations();
+});
