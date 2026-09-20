@@ -2,7 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/error_translator.dart';
 import '../../../core/formatters.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/employee_providers.dart';
 
 final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
@@ -92,25 +94,24 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
       if (!mounted) return;
       context.pop();
     } on DioException catch (e) {
-      final message = e.response?.data is Map
-          ? (e.response?.data['error'] ?? 'Gagal menyimpan data karyawan')
-          : 'Gagal menyimpan data karyawan, cek koneksi ke server';
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message.toString())));
+      final message = translateError(context, e);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
   Future<void> _deactivate() async {
+    final t = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Nonaktifkan Karyawan'),
-        content: Text('Yakin ingin menonaktifkan ${widget.employee!['name']}?'),
+        title: Text(t.deactivateEmployeeTitle),
+        content: Text(t.confirmDeactivateEmployee(widget.employee!['name']?.toString() ?? '')),
         actions: [
-          TextButton(onPressed: () => context.pop(false), child: const Text('Batal')),
-          FilledButton(onPressed: () => context.pop(true), child: const Text('Nonaktifkan')),
+          TextButton(onPressed: () => context.pop(false), child: Text(t.cancelButton)),
+          FilledButton(onPressed: () => context.pop(true), child: Text(t.deactivateButton)),
         ],
       ),
     );
@@ -119,21 +120,22 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
       await ref.read(employeeApiProvider).deactivateEmployee(widget.employee!['id'] as int);
       if (!mounted) return;
       context.pop();
-    } on DioException {
+    } on DioException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Gagal menonaktifkan karyawan')));
+          .showSnackBar(SnackBar(content: Text(translateError(context, e))));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     final departmentsAsync = ref.watch(departmentListProvider);
     final employeesAsync = ref.watch(employeeListProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Karyawan' : 'Tambah Karyawan'),
+        title: Text(_isEditing ? t.editEmployeeTitle : t.addEmployeeTitle),
         actions: [
           if (_isEditing)
             IconButton(icon: const Icon(Icons.person_off), onPressed: _deactivate),
@@ -147,20 +149,20 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Nama'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Wajib diisi' : null,
+                decoration: InputDecoration(labelText: t.nameLabel),
+                validator: (v) => (v == null || v.trim().isEmpty) ? t.requiredField : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _emailController,
                 enabled: !_isEditing,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: InputDecoration(labelText: t.emailLabel),
                 keyboardType: TextInputType.emailAddress,
                 validator: _isEditing
                     ? null
                     : (v) {
-                        if (v == null || v.trim().isEmpty) return 'Wajib diisi';
-                        if (!_emailRegex.hasMatch(v.trim())) return 'Email tidak valid';
+                        if (v == null || v.trim().isEmpty) return t.requiredField;
+                        if (!_emailRegex.hasMatch(v.trim())) return t.invalidEmail;
                         return null;
                       },
               ),
@@ -168,48 +170,48 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Password Awal'),
+                  decoration: InputDecoration(labelText: t.initialPasswordLabel),
                   obscureText: true,
-                  validator: (v) => (v == null || v.length < 6) ? 'Minimal 6 karakter' : null,
+                  validator: (v) => (v == null || v.length < 6) ? t.minLength6 : null,
                 ),
               ],
               const SizedBox(height: 12),
               TextFormField(
                 controller: _phoneController,
-                decoration: const InputDecoration(labelText: 'Telepon'),
+                decoration: InputDecoration(labelText: t.phoneLabel),
                 keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _positionController,
-                decoration: const InputDecoration(labelText: 'Jabatan'),
+                decoration: InputDecoration(labelText: t.positionLabel),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _salaryController,
-                decoration: const InputDecoration(labelText: 'Gaji Pokok'),
+                decoration: InputDecoration(labelText: t.baseSalaryLabel),
                 keyboardType: TextInputType.number,
                 inputFormatters: [RupiahInputFormatter()],
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: _role,
-                decoration: const InputDecoration(labelText: 'Role'),
-                items: const [
-                  DropdownMenuItem(value: 'employee', child: Text('Karyawan')),
-                  DropdownMenuItem(value: 'hr_admin', child: Text('HR Admin')),
+                decoration: InputDecoration(labelText: t.roleLabel),
+                items: [
+                  DropdownMenuItem(value: 'employee', child: Text(t.employeeRoleOption)),
+                  DropdownMenuItem(value: 'hr_admin', child: Text(t.hrAdminRoleOption)),
                 ],
                 onChanged: (v) => setState(() => _role = v ?? 'employee'),
               ),
               const SizedBox(height: 12),
               departmentsAsync.when(
                 loading: () => const LinearProgressIndicator(),
-                error: (e, _) => Text('Gagal memuat departemen: $e'),
+                error: (e, _) => Text(translateError(context, e)),
                 data: (departments) => DropdownButtonFormField<int?>(
                   initialValue: _departmentId,
-                  decoration: const InputDecoration(labelText: 'Departemen'),
+                  decoration: InputDecoration(labelText: t.departmentLabel),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('- Tidak ada -')),
+                    DropdownMenuItem(value: null, child: Text(t.noneOption)),
                     ...departments.map((d) => DropdownMenuItem(
                           value: d['id'] as int,
                           child: Text(d['name']?.toString() ?? '-'),
@@ -221,12 +223,12 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
               const SizedBox(height: 12),
               employeesAsync.when(
                 loading: () => const LinearProgressIndicator(),
-                error: (e, _) => Text('Gagal memuat daftar atasan: $e'),
+                error: (e, _) => Text(translateError(context, e)),
                 data: (employees) => DropdownButtonFormField<int?>(
                   initialValue: _supervisorId,
-                  decoration: const InputDecoration(labelText: 'Atasan'),
+                  decoration: InputDecoration(labelText: t.supervisorLabel),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('- Tidak ada -')),
+                    DropdownMenuItem(value: null, child: Text(t.noneOption)),
                     ...employees
                         .where((e) => e['id'] != widget.employee?['id'])
                         .map((e) => DropdownMenuItem(
@@ -240,8 +242,8 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
               const SizedBox(height: 12),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Tanggal Bergabung'),
-                trailing: Text(_joinDate == null ? 'Pilih tanggal' : formatDateLong(_joinDate!)),
+                title: Text(t.joinDateLabel),
+                trailing: Text(_joinDate == null ? t.pickDateHint : formatDateLong(_joinDate!)),
                 onTap: _pickJoinDate,
               ),
               const SizedBox(height: 24),
@@ -253,7 +255,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Simpan'),
+                    : Text(t.saveButton),
               ),
             ],
           ),
