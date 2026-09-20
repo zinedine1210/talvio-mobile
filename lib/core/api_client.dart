@@ -1,12 +1,17 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'api_signing.dart';
 
-// TODO: Android emulator can't reach localhost — switch to 10.0.2.2 when running there.
-const String apiBaseUrl = 'http://localhost:8081';
+// Android emulator's "localhost" refers to the emulator itself, not the
+// host machine — 10.0.2.2 is the documented alias for the host's loopback.
+// Doesn't cover a physical device over Wi-Fi (would need the host's LAN IP)
+// — not needed yet since testing has been emulator/simulator only so far.
+final String apiBaseUrl =
+    Platform.isAndroid ? 'http://10.0.2.2:8081' : 'http://localhost:8081';
 
 class AuthTokenNotifier extends Notifier<String?> {
   @override
