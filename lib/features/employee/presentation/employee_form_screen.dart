@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/error_translator.dart';
 import '../../../core/formatters.dart';
 import '../../../l10n/app_localizations.dart';
@@ -42,7 +43,9 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
   late DateTime? _joinDate = widget.employee?['join_date'] != null
       ? DateTime.tryParse(widget.employee!['join_date'].toString())
       : null;
+  late String? _photoUrl = widget.employee?['photo_url']?.toString();
   bool _isSaving = false;
+  bool _isUploadingPhoto = false;
 
   bool get _isEditing => widget.employee != null;
 
@@ -55,6 +58,53 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
     _positionController.dispose();
     _salaryController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAndUploadPhoto() async {
+    final t = AppLocalizations.of(context)!;
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: Text(t.takePhotoOption),
+              onTap: () => context.pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: Text(t.choosePhotoOption),
+              onTap: () => context.pop(ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+
+    final picked = await ImagePicker()
+        .pickImage(source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 85);
+    if (picked == null) return;
+
+    setState(() => _isUploadingPhoto = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      final result = await ref
+          .read(employeeApiProvider)
+          .uploadPhoto(widget.employee!['id'] as int, bytes, picked.name);
+      if (!mounted) return;
+      setState(() => _photoUrl = result['photo_url']?.toString());
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(t.photoUploadedMessage)));
+    } on DioException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(translateError(context, e))));
+    } finally {
+      if (mounted) setState(() => _isUploadingPhoto = false);
+    }
   }
 
   Future<void> _pickJoinDate() async {
@@ -147,6 +197,36 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
           key: _formKey,
           child: ListView(
             children: [
+              if (_isEditing) ...[
+                Center(
+                  child: GestureDetector(
+                    onTap: _isUploadingPhoto ? null : _pickAndUploadPhoto,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CircleAvatar(
+                          radius: 48,
+                          backgroundImage:
+                              _photoUrl != null && _photoUrl!.isNotEmpty
+                                  ? NetworkImage(_photoUrl!)
+                                  : null,
+                          child: _photoUrl == null || _photoUrl!.isEmpty
+                              ? const Icon(Icons.person, size: 48)
+                              : null,
+                        ),
+                        if (_isUploadingPhoto) const CircularProgressIndicator(),
+                      ],
+                    ),
+                  ),
+                ),
+                Center(
+                  child: TextButton(
+                    onPressed: _isUploadingPhoto ? null : _pickAndUploadPhoto,
+                    child: Text(t.profilePhotoLabel),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(labelText: t.nameLabel),

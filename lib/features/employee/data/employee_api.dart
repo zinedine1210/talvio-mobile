@@ -4,6 +4,14 @@ class EmployeeApi {
   EmployeeApi(this._dio);
   final Dio _dio;
 
+  Future<Map<String, dynamic>> uploadPhoto(int id, List<int> photoBytes, String filename) async {
+    final formData = FormData.fromMap({
+      'photo': MultipartFile.fromBytes(photoBytes, filename: filename),
+    });
+    final res = await _dio.post('/employees/$id/photo', data: formData);
+    return res.data as Map<String, dynamic>;
+  }
+
   Future<List<Map<String, dynamic>>> listEmployees() async {
     final res = await _dio.get('/employees');
     return (res.data as List).cast<Map<String, dynamic>>();

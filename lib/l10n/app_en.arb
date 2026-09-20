@@ -104,5 +104,10 @@
   "errorInvalidSupervisorReference": "Invalid supervisor",
   "errorInvalidDateFormat": "Invalid date format",
   "errorGeneric": "Something went wrong, please try again",
-  "errorNetworkUnreachable": "Unable to reach the server, check your internet connection"
+  "errorNetworkUnreachable": "Unable to reach the server, check your internet connection",
+
+  "profilePhotoLabel": "Profile Photo",
+  "takePhotoOption": "Take Photo",
+  "choosePhotoOption": "Choose from Gallery",
+  "photoUploadedMessage": "Photo updated successfully"
 }
