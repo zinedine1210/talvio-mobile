@@ -192,9 +192,7 @@
   "statusPending": "Pending",
   "statusApproved": "Approved",
   "statusRejected": "Rejected",
-  "errorInvalidDateRange": "Invalid date range",
-  "errorInsufficientLeaveQuota": "Not enough leave quota remaining",
   "errorLeaveRequestNotFound": "Request not found",
-  "errorNotYourApproval": "You're not the approver for this request",
-  "errorApprovalConfigNotFound": "Approval setting not found"
+  "errorLeaveNotPending": "This request has already been decided",
+  "errorNoHrAdmin": "Company has no active HR admin to approve requests"
 }

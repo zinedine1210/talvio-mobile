@@ -192,9 +192,7 @@
   "statusPending": "Menunggu",
   "statusApproved": "Disetujui",
   "statusRejected": "Ditolak",
-  "errorInvalidDateRange": "Rentang tanggal tidak valid",
-  "errorInsufficientLeaveQuota": "Sisa kuota cuti tidak mencukupi",
   "errorLeaveRequestNotFound": "Pengajuan tidak ditemukan",
-  "errorNotYourApproval": "Anda bukan penyetuju untuk pengajuan ini",
-  "errorApprovalConfigNotFound": "Pengaturan persetujuan tidak ditemukan"
+  "errorLeaveNotPending": "Pengajuan ini sudah diputuskan sebelumnya",
+  "errorNoHrAdmin": "Perusahaan belum punya HR admin aktif untuk menyetujui pengajuan"
 }
