@@ -165,7 +165,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
           return Stack(
             fit: StackFit.expand,
             children: [
-              CameraPreview(controller),
+              _CameraPreviewFill(controller: controller),
               Positioned(
                 left: 0,
                 right: 0,
@@ -209,6 +209,38 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Fills the available space with the camera preview at its true aspect
+/// ratio (cropping edges via BoxFit.cover) instead of letting the parent
+/// Stack's StackFit.expand stretch CameraPreview directly, which distorts
+/// the image into an oval/elongated look and throws off face detection.
+///
+/// CameraController reports previewSize in landscape terms (width > height)
+/// regardless of device orientation, so it's swapped here for portrait.
+class _CameraPreviewFill extends StatelessWidget {
+  const _CameraPreviewFill({required this.controller});
+
+  final CameraController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final previewSize = controller.value.previewSize;
+    if (previewSize == null) return CameraPreview(controller);
+    return ClipRect(
+      child: OverflowBox(
+        alignment: Alignment.center,
+        child: FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox(
+            width: previewSize.height,
+            height: previewSize.width,
+            child: CameraPreview(controller),
+          ),
+        ),
       ),
     );
   }
