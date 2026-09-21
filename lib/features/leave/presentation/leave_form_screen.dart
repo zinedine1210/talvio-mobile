@@ -78,50 +78,74 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(t.newLeaveRequestTitle)),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Column(
             children: [
               quotaAsync.when(
                 loading: () => const SizedBox.shrink(),
                 error: (_, _) => const SizedBox.shrink(),
-                data: (q) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    '${t.remainingQuotaLabel}: ${t.quotaDaysUsedFormat(q['used_days'] as int? ?? 0, q['quota_days'] as int? ?? 0)}',
+                data: (q) => Card(
+                  color: Theme.of(context).colorScheme.secondaryContainer,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                            color: Theme.of(context).colorScheme.onSecondaryContainer),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '${t.remainingQuotaLabel}: ${t.quotaDaysUsedFormat(q['used_days'] as int? ?? 0, q['quota_days'] as int? ?? 0)}',
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSecondaryContainer),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-              DropdownButtonFormField<String>(
-                initialValue: _type,
-                decoration: InputDecoration(labelText: t.leaveTypeLabel),
-                items: [
-                  DropdownMenuItem(value: 'cuti', child: Text(t.leaveTypeCuti)),
-                  DropdownMenuItem(value: 'izin', child: Text(t.leaveTypeIzin)),
-                  DropdownMenuItem(value: 'sakit', child: Text(t.leaveTypeSakit)),
-                ],
-                onChanged: (v) => setState(() => _type = v ?? 'cuti'),
-              ),
-              const SizedBox(height: 12),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(t.dateRangeLabel),
-                subtitle: Text(_range == null
-                    ? t.selectDateRangeButton
-                    : '${_range!.start.toString().split(' ').first} — '
-                        '${_range!.end.toString().split(' ').first} '
-                        '(${leaveDurationDays(_range!.start, _range!.end)})'),
-                trailing: const Icon(Icons.calendar_today),
-                onTap: _pickRange,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _reasonController,
-                decoration: InputDecoration(labelText: t.reasonLabel),
-                maxLines: 3,
-                validator: (v) => (v == null || v.trim().isEmpty) ? t.requiredField : null,
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      DropdownButtonFormField<String>(
+                        initialValue: _type,
+                        decoration: InputDecoration(labelText: t.leaveTypeLabel),
+                        items: [
+                          DropdownMenuItem(value: 'cuti', child: Text(t.leaveTypeCuti)),
+                          DropdownMenuItem(value: 'izin', child: Text(t.leaveTypeIzin)),
+                          DropdownMenuItem(value: 'sakit', child: Text(t.leaveTypeSakit)),
+                        ],
+                        onChanged: (v) => setState(() => _type = v ?? 'cuti'),
+                      ),
+                      const SizedBox(height: 16),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(t.dateRangeLabel),
+                        subtitle: Text(_range == null
+                            ? t.selectDateRangeButton
+                            : '${_range!.start.toString().split(' ').first} — '
+                                '${_range!.end.toString().split(' ').first} '
+                                '(${leaveDurationDays(_range!.start, _range!.end)})'),
+                        trailing: const Icon(Icons.calendar_today_outlined),
+                        onTap: _pickRange,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _reasonController,
+                        decoration: InputDecoration(labelText: t.reasonLabel),
+                        maxLines: 3,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? t.requiredField : null,
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
               FilledButton(

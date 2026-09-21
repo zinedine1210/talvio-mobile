@@ -50,25 +50,53 @@ class LeaveApprovalsScreen extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(leaveApprovalsProvider),
             child: ListView.separated(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               itemCount: requests.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, i) {
                 final r = requests[i];
                 final match = employees.where((e) => e['id'] == r['employee_id']);
                 final name = match.isNotEmpty ? match.first['name']?.toString() : null;
+                final colorScheme = Theme.of(context).colorScheme;
                 return Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(name ?? 'Employee #${r['employee_id']}',
-                            style: Theme.of(context).textTheme.titleMedium),
-                        Text('${r['type']} · ${r['start_date']} — ${r['end_date']}'),
-                        if ((r['reason'] as String?)?.isNotEmpty == true)
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 18,
+                              backgroundColor: colorScheme.primaryContainer,
+                              child: Icon(Icons.person_outline,
+                                  size: 18, color: colorScheme.onPrimaryContainer),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(name ?? 'Employee #${r['employee_id']}',
+                                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                                  Text('${r['start_date']} — ${r['end_date']}',
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: colorScheme.onSurfaceVariant)),
+                                ],
+                              ),
+                            ),
+                            Chip(
+                              label: Text(r['type']?.toString() ?? '-'),
+                              backgroundColor: colorScheme.secondaryContainer,
+                              labelStyle: TextStyle(color: colorScheme.onSecondaryContainer),
+                            ),
+                          ],
+                        ),
+                        if ((r['reason'] as String?)?.isNotEmpty == true) ...[
+                          const SizedBox(height: 12),
                           Text(r['reason'].toString()),
-                        const SizedBox(height: 8),
+                        ],
+                        const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
