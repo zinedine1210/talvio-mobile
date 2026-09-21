@@ -68,16 +68,32 @@ class _ApprovalConfigScreenState extends ConsumerState<ApprovalConfigScreen> {
     }
   }
 
-  Widget _section(String title, _TypeConfig config, List<Map<String, dynamic>> employees) {
+  Widget _section(
+      IconData icon, String title, _TypeConfig config, List<Map<String, dynamic>> employees) {
     final t = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: colorScheme.primaryContainer,
+                  child: Icon(icon, size: 16, color: colorScheme.onPrimaryContainer),
+                ),
+                const SizedBox(width: 10),
+                Text(title,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               initialValue: config.mode,
               decoration: InputDecoration(labelText: t.approverModeLabel),
@@ -128,9 +144,11 @@ class _ApprovalConfigScreenState extends ConsumerState<ApprovalConfigScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _section(t.approvalConfigLeaveLabel, _configs['leave']!, employees),
+                  _section(Icons.beach_access_outlined, t.approvalConfigLeaveLabel,
+                      _configs['leave']!, employees),
                   const SizedBox(height: 16),
-                  _section(t.approvalConfigWfhReviewLabel, _configs['wfh_review']!, employees),
+                  _section(Icons.location_off_outlined, t.approvalConfigWfhReviewLabel,
+                      _configs['wfh_review']!, employees),
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: _isSaving ? null : () => _save(configs),
