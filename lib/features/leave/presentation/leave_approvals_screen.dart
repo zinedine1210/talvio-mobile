@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/error_translator.dart';
+import '../../../core/formatters.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../employee/providers/employee_providers.dart';
 import '../providers/leave_providers.dart';
@@ -79,7 +80,9 @@ class LeaveApprovalsScreen extends ConsumerWidget {
                                 children: [
                                   Text(name ?? 'Employee #${r['employee_id']}',
                                       style: const TextStyle(fontWeight: FontWeight.w700)),
-                                  Text('${r['start_date']} — ${r['end_date']}',
+                                  Text(
+                                      '${formatDateLongFromString(r['start_date']?.toString())} — '
+                                      '${formatDateLongFromString(r['end_date']?.toString())}',
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                           color: colorScheme.onSurfaceVariant)),
                                 ],

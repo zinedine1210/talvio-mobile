@@ -83,8 +83,14 @@
 
   "departmentsTitle": "Departments",
   "addDepartmentTitle": "Add Department",
+  "editDepartmentTitle": "Edit Department",
   "departmentNameLabel": "Department Name",
   "noDepartmentsYet": "No departments yet",
+  "deactivateDepartmentTitle": "Deactivate Department",
+  "confirmDeactivateDepartment": "Are you sure you want to deactivate {name}?",
+  "@confirmDeactivateDepartment": {
+    "placeholders": { "name": { "type": "String" } }
+  },
 
   "statusLabel": "Status",
 

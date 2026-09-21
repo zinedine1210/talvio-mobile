@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/error_translator.dart';
+import '../../../core/formatters.dart';
 import '../../../l10n/app_localizations.dart';
 import '../leave_duration.dart';
 import '../providers/leave_providers.dart';
@@ -130,8 +131,8 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
                         title: Text(t.dateRangeLabel),
                         subtitle: Text(_range == null
                             ? t.selectDateRangeButton
-                            : '${_range!.start.toString().split(' ').first} — '
-                                '${_range!.end.toString().split(' ').first} '
+                            : '${formatDateLong(_range!.start)} — '
+                                '${formatDateLong(_range!.end)} '
                                 '(${leaveDurationDays(_range!.start, _range!.end)})'),
                         trailing: const Icon(Icons.calendar_today_outlined),
                         onTap: _pickRange,

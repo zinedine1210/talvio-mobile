@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/error_translator.dart';
+import '../../../core/formatters.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../employee/providers/employee_providers.dart';
 import '../providers/attendance_providers.dart';
@@ -103,7 +104,7 @@ class PendingReviewScreen extends ConsumerWidget {
                                 children: [
                                   Text(employeeName ?? 'Employee #${r['employee_id']}',
                                       style: const TextStyle(fontWeight: FontWeight.w700)),
-                                  Text(r['date']?.toString() ?? '-',
+                                  Text(formatDateLongFromString(r['date']?.toString()),
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                           color: colorScheme.onSurfaceVariant)),
                                 ],

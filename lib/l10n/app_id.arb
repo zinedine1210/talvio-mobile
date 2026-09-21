@@ -83,8 +83,14 @@
 
   "departmentsTitle": "Departemen",
   "addDepartmentTitle": "Tambah Departemen",
+  "editDepartmentTitle": "Ubah Departemen",
   "departmentNameLabel": "Nama Departemen",
   "noDepartmentsYet": "Belum ada departemen",
+  "deactivateDepartmentTitle": "Nonaktifkan Departemen",
+  "confirmDeactivateDepartment": "Yakin ingin menonaktifkan {name}?",
+  "@confirmDeactivateDepartment": {
+    "placeholders": { "name": { "type": "String" } }
+  },
 
   "statusLabel": "Status",
 
