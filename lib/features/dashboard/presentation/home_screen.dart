@@ -41,14 +41,16 @@ class HomeScreen extends ConsumerWidget {
             label: t.attendanceMenu,
             onTap: () => context.push('/attendance'),
           ),
-          ListTile(
-            leading: const Icon(Icons.event_available),
-            title: Text(t.leaveMenu),
+          const SizedBox(height: 12),
+          _MenuCard(
+            icon: Icons.event_available_outlined,
+            label: t.leaveMenu,
             onTap: () => context.push('/leave'),
           ),
-          ListTile(
-            leading: const Icon(Icons.assignment_turned_in),
-            title: Text(t.leaveApprovalsMenu),
+          const SizedBox(height: 12),
+          _MenuCard(
+            icon: Icons.assignment_turned_in_outlined,
+            label: t.leaveApprovalsMenu,
             onTap: () => context.push('/leave/approvals'),
           ),
           if (isHr) ...[
@@ -70,9 +72,10 @@ class HomeScreen extends ConsumerWidget {
               label: t.pendingReviewMenu,
               onTap: () => context.push('/attendance/pending-review'),
             ),
-            ListTile(
-              leading: const Icon(Icons.rule),
-              title: Text(t.approvalConfigMenu),
+            const SizedBox(height: 12),
+            _MenuCard(
+              icon: Icons.rule_outlined,
+              label: t.approvalConfigMenu,
               onTap: () => context.push('/company/approval-configs'),
             ),
           ],
