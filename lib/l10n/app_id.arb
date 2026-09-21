@@ -206,5 +206,7 @@
   "statusRejected": "Ditolak",
   "errorLeaveRequestNotFound": "Pengajuan tidak ditemukan",
   "errorLeaveNotPending": "Pengajuan ini sudah diputuskan sebelumnya",
-  "errorNoHrAdmin": "Perusahaan belum punya HR admin aktif untuk menyetujui pengajuan"
+  "errorNoHrAdmin": "Perusahaan belum punya HR admin aktif untuk menyetujui pengajuan",
+  "positionYourFaceStatus": "Posisikan wajah Anda",
+  "liveFaceDetectedStatus": "Wajah terdeteksi ✓"
 }

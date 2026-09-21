@@ -206,5 +206,7 @@
   "statusRejected": "Rejected",
   "errorLeaveRequestNotFound": "Request not found",
   "errorLeaveNotPending": "This request has already been decided",
-  "errorNoHrAdmin": "Company has no active HR admin to approve requests"
+  "errorNoHrAdmin": "Company has no active HR admin to approve requests",
+  "positionYourFaceStatus": "Position your face",
+  "liveFaceDetectedStatus": "Face detected ✓"
 }
