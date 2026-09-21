@@ -1,6 +1,10 @@
 {
   "@@locale": "id",
 
+  "homeGreeting": "Halo, {name} 👋",
+  "@homeGreeting": {
+    "placeholders": { "name": { "type": "String" } }
+  },
   "emailLabel": "Email",
   "passwordLabel": "Password",
   "nameLabel": "Nama",

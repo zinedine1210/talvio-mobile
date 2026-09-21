@@ -47,6 +47,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
   late String? _photoUrl = widget.employee?['photo_url']?.toString();
   bool _isSaving = false;
   bool _isUploadingPhoto = false;
+  bool _obscurePassword = true;
 
   bool get _isEditing => widget.employee != null;
 
@@ -194,11 +195,11 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
             IconButton(icon: const Icon(Icons.person_off), onPressed: _deactivate),
         ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Column(
             children: [
               if (_isEditing) ...[
                 Center(
@@ -209,12 +210,15 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                       children: [
                         CircleAvatar(
                           radius: 48,
+                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                           backgroundImage:
                               _photoUrl != null && _photoUrl!.isNotEmpty
                                   ? NetworkImage(_photoUrl!)
                                   : null,
                           child: _photoUrl == null || _photoUrl!.isEmpty
-                              ? const Icon(Icons.person, size: 48)
+                              ? Icon(Icons.person,
+                                  size: 48,
+                                  color: Theme.of(context).colorScheme.onPrimaryContainer)
                               : null,
                         ),
                         if (_isUploadingPhoto) const CircularProgressIndicator(),
@@ -228,123 +232,151 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                     child: Text(t.profilePhotoLabel),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
               ],
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(labelText: t.nameLabel),
-                validator: (v) => (v == null || v.trim().isEmpty) ? t.requiredField : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _emailController,
-                enabled: !_isEditing,
-                decoration: InputDecoration(labelText: t.emailLabel),
-                keyboardType: TextInputType.emailAddress,
-                validator: _isEditing
-                    ? null
-                    : (v) {
-                        if (v == null || v.trim().isEmpty) return t.requiredField;
-                        if (!_emailRegex.hasMatch(v.trim())) return t.invalidEmail;
-                        return null;
-                      },
-              ),
-              if (!_isEditing) ...[
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: InputDecoration(labelText: t.initialPasswordLabel),
-                  obscureText: true,
-                  validator: (v) => (v == null || v.length < 6) ? t.minLength6 : null,
-                ),
-              ],
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _phoneController,
-                decoration: InputDecoration(labelText: t.phoneLabel),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _positionController,
-                decoration: InputDecoration(labelText: t.positionLabel),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _salaryController,
-                decoration: InputDecoration(labelText: t.baseSalaryLabel),
-                keyboardType: TextInputType.number,
-                inputFormatters: [RupiahInputFormatter()],
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _role,
-                decoration: InputDecoration(labelText: t.roleLabel),
-                items: [
-                  DropdownMenuItem(value: 'employee', child: Text(t.employeeRoleOption)),
-                  DropdownMenuItem(value: 'hr_admin', child: Text(t.hrAdminRoleOption)),
-                ],
-                onChanged: (v) => setState(() => _role = v ?? 'employee'),
-              ),
-              const SizedBox(height: 12),
-              departmentsAsync.when(
-                loading: () => const LinearProgressIndicator(),
-                error: (e, _) => Text(translateError(context, e)),
-                data: (departments) => DropdownButtonFormField<int?>(
-                  initialValue: _departmentId,
-                  decoration: InputDecoration(labelText: t.departmentLabel),
-                  items: [
-                    DropdownMenuItem(value: null, child: Text(t.noneOption)),
-                    ...departments.map((d) => DropdownMenuItem(
-                          value: d['id'] as int,
-                          child: Text(d['name']?.toString() ?? '-'),
-                        )),
-                  ],
-                  onChanged: (v) => setState(() => _departmentId = v),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: InputDecoration(labelText: t.nameLabel),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? t.requiredField : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _emailController,
+                        enabled: !_isEditing,
+                        decoration: InputDecoration(labelText: t.emailLabel),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: _isEditing
+                            ? null
+                            : (v) {
+                                if (v == null || v.trim().isEmpty) return t.requiredField;
+                                if (!_emailRegex.hasMatch(v.trim())) return t.invalidEmail;
+                                return null;
+                              },
+                      ),
+                      if (!_isEditing) ...[
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _passwordController,
+                          decoration: InputDecoration(
+                            labelText: t.initialPasswordLabel,
+                            suffixIcon: IconButton(
+                              icon: Icon(_obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined),
+                              onPressed: () =>
+                                  setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                          ),
+                          obscureText: _obscurePassword,
+                          validator: (v) => (v == null || v.length < 6) ? t.minLength6 : null,
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _phoneController,
+                        decoration: InputDecoration(labelText: t.phoneLabel),
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _positionController,
+                        decoration: InputDecoration(labelText: t.positionLabel),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _salaryController,
+                        decoration: InputDecoration(labelText: t.baseSalaryLabel),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [RupiahInputFormatter()],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
-              locationsAsync.when(
-                loading: () => const LinearProgressIndicator(),
-                error: (e, _) => Text(translateError(context, e)),
-                data: (locations) => DropdownButtonFormField<int?>(
-                  initialValue: _locationId,
-                  decoration: InputDecoration(labelText: t.workLocationLabel),
-                  items: [
-                    DropdownMenuItem(value: null, child: Text(t.noneOption)),
-                    ...locations.map((l) => DropdownMenuItem(
-                          value: l['id'] as int,
-                          child: Text(l['name']?.toString() ?? '-'),
-                        )),
-                  ],
-                  onChanged: (v) => setState(() => _locationId = v),
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      DropdownButtonFormField<String>(
+                        initialValue: _role,
+                        decoration: InputDecoration(labelText: t.roleLabel),
+                        items: [
+                          DropdownMenuItem(value: 'employee', child: Text(t.employeeRoleOption)),
+                          DropdownMenuItem(value: 'hr_admin', child: Text(t.hrAdminRoleOption)),
+                        ],
+                        onChanged: (v) => setState(() => _role = v ?? 'employee'),
+                      ),
+                      const SizedBox(height: 16),
+                      departmentsAsync.when(
+                        loading: () => const LinearProgressIndicator(),
+                        error: (e, _) => Text(translateError(context, e)),
+                        data: (departments) => DropdownButtonFormField<int?>(
+                          initialValue: _departmentId,
+                          decoration: InputDecoration(labelText: t.departmentLabel),
+                          items: [
+                            DropdownMenuItem(value: null, child: Text(t.noneOption)),
+                            ...departments.map((d) => DropdownMenuItem(
+                                  value: d['id'] as int,
+                                  child: Text(d['name']?.toString() ?? '-'),
+                                )),
+                          ],
+                          onChanged: (v) => setState(() => _departmentId = v),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      locationsAsync.when(
+                        loading: () => const LinearProgressIndicator(),
+                        error: (e, _) => Text(translateError(context, e)),
+                        data: (locations) => DropdownButtonFormField<int?>(
+                          initialValue: _locationId,
+                          decoration: InputDecoration(labelText: t.workLocationLabel),
+                          items: [
+                            DropdownMenuItem(value: null, child: Text(t.noneOption)),
+                            ...locations.map((l) => DropdownMenuItem(
+                                  value: l['id'] as int,
+                                  child: Text(l['name']?.toString() ?? '-'),
+                                )),
+                          ],
+                          onChanged: (v) => setState(() => _locationId = v),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      employeesAsync.when(
+                        loading: () => const LinearProgressIndicator(),
+                        error: (e, _) => Text(translateError(context, e)),
+                        data: (employees) => DropdownButtonFormField<int?>(
+                          initialValue: _supervisorId,
+                          decoration: InputDecoration(labelText: t.supervisorLabel),
+                          items: [
+                            DropdownMenuItem(value: null, child: Text(t.noneOption)),
+                            ...employees
+                                .where((e) => e['id'] != widget.employee?['id'])
+                                .map((e) => DropdownMenuItem(
+                                      value: e['id'] as int,
+                                      child: Text(e['name']?.toString() ?? '-'),
+                                    )),
+                          ],
+                          onChanged: (v) => setState(() => _supervisorId = v),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(t.joinDateLabel),
+                        trailing:
+                            Text(_joinDate == null ? t.pickDateHint : formatDateLong(_joinDate!)),
+                        onTap: _pickJoinDate,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              employeesAsync.when(
-                loading: () => const LinearProgressIndicator(),
-                error: (e, _) => Text(translateError(context, e)),
-                data: (employees) => DropdownButtonFormField<int?>(
-                  initialValue: _supervisorId,
-                  decoration: InputDecoration(labelText: t.supervisorLabel),
-                  items: [
-                    DropdownMenuItem(value: null, child: Text(t.noneOption)),
-                    ...employees
-                        .where((e) => e['id'] != widget.employee?['id'])
-                        .map((e) => DropdownMenuItem(
-                              value: e['id'] as int,
-                              child: Text(e['name']?.toString() ?? '-'),
-                            )),
-                  ],
-                  onChanged: (v) => setState(() => _supervisorId = v),
-                ),
-              ),
-              const SizedBox(height: 12),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(t.joinDateLabel),
-                trailing: Text(_joinDate == null ? t.pickDateHint : formatDateLong(_joinDate!)),
-                onTap: _pickJoinDate,
               ),
               const SizedBox(height: 24),
               FilledButton(

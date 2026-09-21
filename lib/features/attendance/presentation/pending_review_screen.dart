@@ -70,9 +70,9 @@ class PendingReviewScreen extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(pendingReviewProvider),
             child: ListView.separated(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               itemCount: records.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, i) {
                 final r = records[i];
                 final employee = employees.where((e) => e['id'] == r['employee_id']);
@@ -81,16 +81,37 @@ class PendingReviewScreen extends ConsumerWidget {
                 final faceStatus = r['face_match_status']?.toString();
                 final note = r['note']?.toString();
 
+                final colorScheme = Theme.of(context).colorScheme;
                 return Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(employeeName ?? 'Employee #${r['employee_id']}',
-                            style: Theme.of(context).textTheme.titleMedium),
-                        Text(r['date']?.toString() ?? '-'),
-                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 18,
+                              backgroundColor: colorScheme.primaryContainer,
+                              child: Icon(Icons.person_outline,
+                                  size: 18, color: colorScheme.onPrimaryContainer),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(employeeName ?? 'Employee #${r['employee_id']}',
+                                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                                  Text(r['date']?.toString() ?? '-',
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: colorScheme.onSurfaceVariant)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
                         Row(
                           children: [
                             if ((r['clock_in_photo_url'] as String?)?.isNotEmpty == true)
@@ -99,11 +120,36 @@ class PendingReviewScreen extends ConsumerWidget {
                               Expanded(child: _PhotoThumb(t.clockOutPhotoLabel, r['clock_out_photo_url'])),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Text('${t.radiusStatusLabel}: ${withinIn ? t.withinRadiusLabel : t.outsideRadiusLabel}'),
-                        if (faceStatus != null) Text('${t.faceMatchLabel}: $faceStatus'),
-                        if (note != null && note.isNotEmpty) Text('${t.hrNoteLabel}: $note'),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            Chip(
+                              avatar: Icon(
+                                withinIn ? Icons.check_circle_outline : Icons.error_outline,
+                                size: 18,
+                                color: withinIn ? colorScheme.onTertiaryContainer : colorScheme.onErrorContainer,
+                              ),
+                              label: Text(withinIn ? t.withinRadiusLabel : t.outsideRadiusLabel),
+                              backgroundColor:
+                                  withinIn ? colorScheme.tertiaryContainer : colorScheme.errorContainer,
+                            ),
+                            if (faceStatus != null)
+                              Chip(
+                                avatar: Icon(Icons.face_retouching_natural, size: 18,
+                                    color: colorScheme.onSecondaryContainer),
+                                label: Text('${t.faceMatchLabel}: $faceStatus'),
+                                backgroundColor: colorScheme.secondaryContainer,
+                              ),
+                          ],
+                        ),
+                        if (note != null && note.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text('${t.hrNoteLabel}: $note',
+                              style: Theme.of(context).textTheme.bodyMedium),
+                        ],
+                        const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [

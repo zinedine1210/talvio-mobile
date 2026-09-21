@@ -96,42 +96,56 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
             for (var i = 0; i < _locations.length; i++)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(t.locationLabel(i + 1),
-                              style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on_outlined,
+                                size: 20, color: Theme.of(context).colorScheme.primary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(t.locationLabel(i + 1),
+                                  style: const TextStyle(fontWeight: FontWeight.w700)),
+                            ),
+                            if (_locations.length > 1)
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline),
+                                onPressed: () => setState(() => _locations.removeAt(i)),
+                              ),
+                          ],
                         ),
-                        if (_locations.length > 1)
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () => setState(() => _locations.removeAt(i)),
-                          ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _locations[i].nameController,
+                          decoration: InputDecoration(labelText: t.locationNameHint),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _locations[i].latController,
+                          decoration: InputDecoration(labelText: t.latitudeLabel),
+                          keyboardType:
+                              const TextInputType.numberWithOptions(decimal: true, signed: true),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _locations[i].lngController,
+                          decoration: InputDecoration(labelText: t.longitudeLabel),
+                          keyboardType:
+                              const TextInputType.numberWithOptions(decimal: true, signed: true),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _locations[i].radiusController,
+                          decoration: InputDecoration(labelText: t.radiusLabel),
+                          keyboardType: TextInputType.number,
+                        ),
                       ],
                     ),
-                    TextField(
-                      controller: _locations[i].nameController,
-                      decoration: InputDecoration(labelText: t.locationNameHint),
-                    ),
-                    TextField(
-                      controller: _locations[i].latController,
-                      decoration: InputDecoration(labelText: t.latitudeLabel),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                    ),
-                    TextField(
-                      controller: _locations[i].lngController,
-                      decoration: InputDecoration(labelText: t.longitudeLabel),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                    ),
-                    TextField(
-                      controller: _locations[i].radiusController,
-                      decoration: InputDecoration(labelText: t.radiusLabel),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             TextButton.icon(
