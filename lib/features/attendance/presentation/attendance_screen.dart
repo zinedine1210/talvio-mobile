@@ -13,7 +13,6 @@ import '../../../l10n/app_localizations.dart';
 import '../../employee/providers/employee_providers.dart';
 import '../attendance_status.dart';
 import '../face_matching.dart';
-import '../liveness_check.dart';
 import '../providers/attendance_providers.dart';
 
 /// Max face-match retries before submitting anyway for HR review — per
@@ -93,21 +92,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     );
   }
 
-  Future<bool> _showLivenessFailedDialog(AppLocalizations t) async {
-    final retry = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(t.livenessFailedTitle),
-        content: Text(t.livenessFailedMessage),
-        actions: [
-          TextButton(onPressed: () => context.pop(false), child: Text(t.cancelButton)),
-          FilledButton(onPressed: () => context.pop(true), child: Text(t.retakeButton)),
-        ],
-      ),
-    );
-    return retry ?? false;
-  }
-
   /// Returns true = retake photo, false = submit anyway, null = cancel.
   Future<bool?> _showFaceMatchRetryDialog(AppLocalizations t) async {
     return showDialog<bool>(
@@ -166,7 +150,14 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         }
       }
 
-      String? photoPath;
+      // Camera screen gates capture on live face+liveness detection (see
+      // camera_capture_screen.dart) — a returned path has already passed
+      // that bar, no separate post-capture liveness re-check needed here.
+      if (!mounted) return;
+      final firstCapture = await context.push<String>('/attendance/capture');
+      if (firstCapture == null) return; // user backed out of camera
+      String photoPath = firstCapture;
+
       var matchResult = const FaceMatchResult(0, FaceMatchStatus.notChecked);
       final profilePhotoUrl = me['photo_url'] as String?;
       final embedder = (profilePhotoUrl != null && profilePhotoUrl.isNotEmpty)
@@ -175,20 +166,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       var matchAttempts = 0;
       var gaveUpOnMatch = false;
       try {
-        while (true) {
-          if (!mounted) return;
-          photoPath = await context.push<String>('/attendance/capture');
-          if (photoPath == null) return; // user backed out of camera
-          final passed = await passesLivenessCheck(photoPath);
-          if (!passed) {
-            if (!mounted) return;
-            final retry = await _showLivenessFailedDialog(t);
-            if (!retry) return;
-            continue;
-          }
-
-          if (embedder == null) break; // no profile photo enrolled yet — not_checked
-
+        while (embedder != null) {
           matchAttempts++;
           final liveEmbedding = await embedder.embedFaceInImageFile(photoPath);
           final profileFile = await _downloadToTempFile(profilePhotoUrl!);
@@ -216,7 +194,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           final choice = await _showFaceMatchRetryDialog(t);
           if (choice == null) return; // cancel entirely
           if (choice == false) break; // submit anyway, right now
-          // choice == true -> loop back and retake the photo
+          // choice == true -> retake (camera gates on liveness again, same
+          // as the first capture) and loop back for another match attempt.
+          if (!mounted) return;
+          final retaken = await context.push<String>('/attendance/capture');
+          if (retaken == null) return; // user backed out of camera
+          photoPath = retaken;
         }
       } finally {
         embedder?.close();
