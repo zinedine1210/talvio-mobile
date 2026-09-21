@@ -14,6 +14,7 @@ import '../../employee/providers/employee_providers.dart';
 import '../attendance_status.dart';
 import '../face_matching.dart';
 import '../providers/attendance_providers.dart';
+import 'live_location_map.dart';
 
 /// Max face-match retries before submitting anyway for HR review — per
 /// SPEC.md's "never truly locked out" rule. Liveness has no such cap (that
@@ -252,24 +253,50 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(t.attendanceTitle)),
-      body: Center(
-        child: attendanceAsync.when(
-          loading: () => const CircularProgressIndicator(),
-          error: (e, _) => Text(translateError(context, e)),
-          data: (records) {
-            final action = determineAttendanceAction(records, todayDateString());
-            if (action == AttendanceAction.done) {
-              return Text(t.alreadyClockedTodayMessage);
-            }
-            final isClockIn = action == AttendanceAction.clockIn;
-            return FilledButton(
-              onPressed: _isProcessing ? null : () => _handleAction(action),
-              child: _isProcessing
-                  ? const SizedBox(
-                      height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text(isClockIn ? t.clockInButton : t.clockOutButton),
-            );
-          },
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const LiveLocationMap(),
+            const SizedBox(height: 20),
+            attendanceAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text(translateError(context, e))),
+              data: (records) {
+                final action = determineAttendanceAction(records, todayDateString());
+                if (action == AttendanceAction.done) {
+                  return Card(
+                    color: Theme.of(context).colorScheme.tertiaryContainer,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_circle_outline,
+                              color: Theme.of(context).colorScheme.onTertiaryContainer),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              t.alreadyClockedTodayMessage,
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onTertiaryContainer),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                final isClockIn = action == AttendanceAction.clockIn;
+                return FilledButton(
+                  onPressed: _isProcessing ? null : () => _handleAction(action),
+                  child: _isProcessing
+                      ? const SizedBox(
+                          height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : Text(isClockIn ? t.clockInButton : t.clockOutButton),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
