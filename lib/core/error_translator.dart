@@ -72,6 +72,16 @@ String? _translateCode(AppLocalizations t, String? code) {
       return t.errorNoLocationAssigned;
     case 'NO_OPEN_CLOCKIN':
       return t.errorNoOpenClockin;
+    case 'INVALID_DATE_RANGE':
+      return t.errorInvalidDateRange;
+    case 'INSUFFICIENT_LEAVE_QUOTA':
+      return t.errorInsufficientLeaveQuota;
+    case 'LEAVE_REQUEST_NOT_FOUND':
+      return t.errorLeaveRequestNotFound;
+    case 'NOT_YOUR_APPROVAL':
+      return t.errorNotYourApproval;
+    case 'APPROVAL_CONFIG_NOT_FOUND':
+      return t.errorApprovalConfigNotFound;
     default:
       return null;
   }

@@ -32,6 +32,16 @@ class HomeScreen extends ConsumerWidget {
             title: Text(t.attendanceMenu),
             onTap: () => context.push('/attendance'),
           ),
+          ListTile(
+            leading: const Icon(Icons.event_available),
+            title: Text(t.leaveMenu),
+            onTap: () => context.push('/leave'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.assignment_turned_in),
+            title: Text(t.leaveApprovalsMenu),
+            onTap: () => context.push('/leave/approvals'),
+          ),
           if (isHr) ...[
             ListTile(
               leading: const Icon(Icons.people),
@@ -47,6 +57,11 @@ class HomeScreen extends ConsumerWidget {
               leading: const Icon(Icons.rate_review),
               title: Text(t.pendingReviewMenu),
               onTap: () => context.push('/attendance/pending-review'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.rule),
+              title: Text(t.approvalConfigMenu),
+              onTap: () => context.push('/company/approval-configs'),
             ),
           ],
         ],

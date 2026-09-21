@@ -10,6 +10,10 @@ import '../features/employee/presentation/my_profile_screen.dart';
 import '../features/attendance/presentation/attendance_screen.dart';
 import '../features/attendance/presentation/camera_capture_screen.dart';
 import '../features/attendance/presentation/pending_review_screen.dart';
+import '../features/leave/presentation/leave_form_screen.dart';
+import '../features/leave/presentation/my_leave_screen.dart';
+import '../features/leave/presentation/leave_approvals_screen.dart';
+import '../features/leave/presentation/approval_config_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/register-company',
@@ -62,6 +66,22 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/attendance/pending-review',
       builder: (context, state) => const PendingReviewScreen(),
+    ),
+    GoRoute(
+      path: '/leave',
+      builder: (context, state) => const MyLeaveScreen(),
+    ),
+    GoRoute(
+      path: '/leave/new',
+      builder: (context, state) => const LeaveFormScreen(),
+    ),
+    GoRoute(
+      path: '/leave/approvals',
+      builder: (context, state) => const LeaveApprovalsScreen(),
+    ),
+    GoRoute(
+      path: '/company/approval-configs',
+      builder: (context, state) => const ApprovalConfigScreen(),
     ),
   ],
 );
