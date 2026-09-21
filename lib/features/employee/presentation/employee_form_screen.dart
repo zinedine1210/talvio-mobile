@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -86,16 +89,33 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
     );
     if (source == null) return;
 
-    final picked = await ImagePicker()
-        .pickImage(source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 85);
-    if (picked == null) return;
+    Uint8List bytes;
+    String filename;
+    if (source == ImageSource.camera) {
+      // Reuse attendance's own camera screen instead of image_picker's
+      // camera option, which delegates to the device's system camera app —
+      // many OEM camera apps mirror front-camera selfies before saving,
+      // while attendance's live capture never does. A profile photo
+      // enrolled mirrored would never match a live clock-in capture (see
+      // face_matching.dart), making verification fail no matter who it is.
+      if (!mounted) return;
+      final path = await context.push<String>('/attendance/capture');
+      if (path == null) return;
+      bytes = await File(path).readAsBytes();
+      filename = path.split(Platform.pathSeparator).last;
+    } else {
+      final picked = await ImagePicker()
+          .pickImage(source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 85);
+      if (picked == null) return;
+      bytes = await picked.readAsBytes();
+      filename = picked.name;
+    }
 
     setState(() => _isUploadingPhoto = true);
     try {
-      final bytes = await picked.readAsBytes();
       final result = await ref
           .read(employeeApiProvider)
-          .uploadPhoto(widget.employee!['id'] as int, bytes, picked.name);
+          .uploadPhoto(widget.employee!['id'] as int, bytes, filename);
       if (!mounted) return;
       setState(() => _photoUrl = result['photo_url']?.toString());
       ScaffoldMessenger.of(context)
