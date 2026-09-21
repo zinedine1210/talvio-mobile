@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/error_translator.dart';
+import '../../../core/formatters.dart';
 import '../../../l10n/app_localizations.dart';
 import '../providers/leave_providers.dart';
 
@@ -76,7 +77,9 @@ class MyLeaveScreen extends ConsumerWidget {
                     ),
                     title: Text(_typeLabel(t, r['type']?.toString()),
                         style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text('${r['start_date']} — ${r['end_date']}'),
+                    subtitle: Text(
+                        '${formatDateLongFromString(r['start_date']?.toString())} — '
+                        '${formatDateLongFromString(r['end_date']?.toString())}'),
                     trailing: Chip(
                       label: Text(_statusLabel(t, status)),
                       backgroundColor: chipBg,

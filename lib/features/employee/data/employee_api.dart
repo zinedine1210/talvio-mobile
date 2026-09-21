@@ -51,6 +51,15 @@ class EmployeeApi {
     return res.data as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> updateDepartment(int id, String name) async {
+    final res = await _dio.put('/departments/$id', data: {'name': name});
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<void> deactivateDepartment(int id) async {
+    await _dio.delete('/departments/$id');
+  }
+
   Future<List<Map<String, dynamic>>> listLocations() async {
     final res = await _dio.get('/company/locations');
     return (res.data as List).cast<Map<String, dynamic>>();

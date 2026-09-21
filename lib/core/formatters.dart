@@ -8,6 +8,25 @@ const _bulanIndonesia = [
 String formatDateLong(DateTime date) =>
     '${date.day} ${_bulanIndonesia[date.month - 1]} ${date.year}';
 
+/// Local wall-clock date + time, e.g. "21 September 2026, 08:15" — for
+/// fields with a real time component (clock_in_at, created_at, and
+/// similar), as opposed to [formatDateLong] for date-only fields
+/// (start_date, join_date).
+String formatDateTimeLong(DateTime date) {
+  final local = date.toLocal();
+  final hh = local.hour.toString().padLeft(2, '0');
+  final mm = local.minute.toString().padLeft(2, '0');
+  return '${formatDateLong(local)}, $hh:$mm';
+}
+
+/// Parses an API date string (e.g. a JSON field value) and formats it, or
+/// returns the raw value unchanged if it isn't parseable — never throws.
+String formatDateLongFromString(String? raw) {
+  if (raw == null || raw.isEmpty) return '-';
+  final parsed = DateTime.tryParse(raw);
+  return parsed == null ? raw : formatDateLong(parsed);
+}
+
 String _withThousandsSeparator(String digits) {
   final buffer = StringBuffer();
   for (var i = 0; i < digits.length; i++) {
