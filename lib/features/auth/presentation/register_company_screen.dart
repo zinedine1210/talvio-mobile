@@ -23,6 +23,7 @@ class _RegisterCompanyScreenState extends ConsumerState<RegisterCompanyScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -61,57 +62,92 @@ class _RegisterCompanyScreenState extends ConsumerState<RegisterCompanyScreen> {
     final t = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: Text(t.registerCompanyTitle)),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _companyNameController,
-                decoration: InputDecoration(labelText: t.companyNameLabel),
-                validator: (v) => (v == null || v.trim().isEmpty) ? t.requiredField : null,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextFormField(
+                          controller: _companyNameController,
+                          decoration: InputDecoration(
+                            labelText: t.companyNameLabel,
+                            prefixIcon: const Icon(Icons.apartment_outlined),
+                          ),
+                          validator: (v) =>
+                              (v == null || v.trim().isEmpty) ? t.requiredField : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _adminNameController,
+                          decoration: InputDecoration(
+                            labelText: t.adminNameLabel,
+                            prefixIcon: const Icon(Icons.person_outline),
+                          ),
+                          validator: (v) =>
+                              (v == null || v.trim().isEmpty) ? t.requiredField : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: InputDecoration(
+                            labelText: t.emailLabel,
+                            prefixIcon: const Icon(Icons.mail_outline),
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return t.requiredField;
+                            if (!_emailRegex.hasMatch(v.trim())) return t.invalidEmail;
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _passwordController,
+                          decoration: InputDecoration(
+                            labelText: t.passwordLabel,
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(_obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined),
+                              onPressed: () =>
+                                  setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                          ),
+                          obscureText: _obscurePassword,
+                          validator: (v) => (v == null || v.length < 6) ? t.minLength6 : null,
+                        ),
+                        const SizedBox(height: 24),
+                        FilledButton(
+                          onPressed: _isLoading ? null : _submit,
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : Text(t.registerButton),
+                        ),
+                        TextButton(
+                          onPressed: () => context.go('/login'),
+                          child: Text(t.alreadyHaveAccountLink),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _adminNameController,
-                decoration: InputDecoration(labelText: t.adminNameLabel),
-                validator: (v) => (v == null || v.trim().isEmpty) ? t.requiredField : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(labelText: t.emailLabel),
-                keyboardType: TextInputType.emailAddress,
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return t.requiredField;
-                  if (!_emailRegex.hasMatch(v.trim())) return t.invalidEmail;
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _passwordController,
-                decoration: InputDecoration(labelText: t.passwordLabel),
-                obscureText: true,
-                validator: (v) => (v == null || v.length < 6) ? t.minLength6 : null,
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _isLoading ? null : _submit,
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(t.registerButton),
-              ),
-              TextButton(
-                onPressed: () => context.go('/login'),
-                child: Text(t.alreadyHaveAccountLink),
-              ),
-            ],
+            ),
           ),
         ),
       ),

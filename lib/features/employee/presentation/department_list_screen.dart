@@ -59,10 +59,20 @@ class DepartmentListScreen extends ConsumerWidget {
             return Center(child: Text(t.noDepartmentsYet));
           }
           return ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
             itemCount: departments.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (context, i) => ListTile(
-              title: Text(departments[i]['name']?.toString() ?? '-'),
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            itemBuilder: (context, i) => Card(
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                leading: CircleAvatar(
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  child: Icon(Icons.apartment_outlined,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer),
+                ),
+                title: Text(departments[i]['name']?.toString() ?? '-',
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+              ),
             ),
           );
         },

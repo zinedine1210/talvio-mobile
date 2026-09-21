@@ -8,10 +8,12 @@ import 'api_signing.dart';
 
 // Android emulator's "localhost" refers to the emulator itself, not the
 // host machine — 10.0.2.2 is the documented alias for the host's loopback.
-// Doesn't cover a physical device over Wi-Fi (would need the host's LAN IP)
-// — not needed yet since testing has been emulator/simulator only so far.
-final String apiBaseUrl =
-    Platform.isAndroid ? 'http://10.0.2.2:8081' : 'http://localhost:8081';
+// A physical device has no such alias; run `adb reverse tcp:8081 tcp:8081`
+// and pass --dart-define=API_BASE_URL=http://localhost:8081 to override.
+const _apiBaseUrlOverride = String.fromEnvironment('API_BASE_URL');
+final String apiBaseUrl = _apiBaseUrlOverride.isNotEmpty
+    ? _apiBaseUrlOverride
+    : (Platform.isAndroid ? 'http://10.0.2.2:8081' : 'http://localhost:8081');
 
 class AuthTokenNotifier extends Notifier<String?> {
   @override

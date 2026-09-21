@@ -41,22 +41,38 @@ class EmployeeListScreen extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(employeeListProvider),
             child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
               itemCount: employees.length,
-              separatorBuilder: (_, _) => const Divider(height: 1),
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
                 final e = employees[i];
                 final isActive = e['status'] == 'active';
-                return ListTile(
-                  title: Text(e['name']?.toString() ?? '-'),
-                  subtitle: Text('${e['email'] ?? '-'} · ${e['position'] ?? '-'}'),
-                  trailing: Chip(
-                    label: Text(isActive ? t.activeStatus : t.inactiveStatus),
-                    backgroundColor: isActive ? Colors.green.shade100 : Colors.grey.shade300,
+                final name = e['name']?.toString() ?? '-';
+                final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+                final colorScheme = Theme.of(context).colorScheme;
+                return Card(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: CircleAvatar(
+                      backgroundColor: colorScheme.primaryContainer,
+                      child: Text(initial, style: TextStyle(color: colorScheme.onPrimaryContainer)),
+                    ),
+                    title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text('${e['email'] ?? '-'} · ${e['position'] ?? '-'}'),
+                    trailing: Chip(
+                      label: Text(isActive ? t.activeStatus : t.inactiveStatus),
+                      backgroundColor: isActive
+                          ? colorScheme.tertiaryContainer
+                          : colorScheme.surfaceContainerHighest,
+                      labelStyle: TextStyle(
+                        color: isActive ? colorScheme.onTertiaryContainer : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    onTap: () async {
+                      await context.push('/employees/edit', extra: e);
+                      ref.invalidate(employeeListProvider);
+                    },
                   ),
-                  onTap: () async {
-                    await context.push('/employees/edit', extra: e);
-                    ref.invalidate(employeeListProvider);
-                  },
                 );
               },
             ),
