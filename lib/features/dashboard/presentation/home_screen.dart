@@ -53,6 +53,16 @@ class HomeScreen extends ConsumerWidget {
             label: t.leaveApprovalsMenu,
             onTap: () => context.push('/leave/approvals'),
           ),
+          const SizedBox(height: 12),
+          // Not HR-gated: wfh_review can route to a plain supervisor via
+          // approval_configs (see approval.Resolve on the backend), same as
+          // leave approvals above — the server enforces who's actually
+          // allowed to act on each item, this menu is just navigation.
+          _MenuCard(
+            icon: Icons.rate_review_outlined,
+            label: t.pendingReviewMenu,
+            onTap: () => context.push('/attendance/pending-review'),
+          ),
           if (isHr) ...[
             const SizedBox(height: 12),
             _MenuCard(
@@ -65,12 +75,6 @@ class HomeScreen extends ConsumerWidget {
               icon: Icons.apartment_outlined,
               label: t.manageDepartmentsMenu,
               onTap: () => context.push('/departments'),
-            ),
-            const SizedBox(height: 12),
-            _MenuCard(
-              icon: Icons.rate_review_outlined,
-              label: t.pendingReviewMenu,
-              onTap: () => context.push('/attendance/pending-review'),
             ),
             const SizedBox(height: 12),
             _MenuCard(
