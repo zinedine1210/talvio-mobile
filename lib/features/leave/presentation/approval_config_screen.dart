@@ -9,8 +9,7 @@ import '../providers/leave_providers.dart';
 
 /// HR-only: who approves each request type for this company — a direct
 /// supervisor, a named delegate, or HR itself. See SPEC.md's approval
-/// resolver. `overtime` isn't configurable here yet (that fase hasn't
-/// landed), but any existing config for it is preserved on save.
+/// resolver.
 class ApprovalConfigScreen extends ConsumerStatefulWidget {
   const ApprovalConfigScreen({super.key});
 
@@ -24,7 +23,11 @@ class _TypeConfig {
 }
 
 class _ApprovalConfigScreenState extends ConsumerState<ApprovalConfigScreen> {
-  final _configs = {'leave': _TypeConfig(), 'wfh_review': _TypeConfig()};
+  final _configs = {
+    'leave': _TypeConfig(),
+    'wfh_review': _TypeConfig(),
+    'overtime': _TypeConfig(),
+  };
   bool _isSaving = false;
   bool _initialized = false;
 
@@ -149,6 +152,9 @@ class _ApprovalConfigScreenState extends ConsumerState<ApprovalConfigScreen> {
                   const SizedBox(height: 16),
                   _section(Icons.location_off_outlined, t.approvalConfigWfhReviewLabel,
                       _configs['wfh_review']!, employees),
+                  const SizedBox(height: 16),
+                  _section(Icons.schedule_outlined, t.approvalConfigOvertimeLabel,
+                      _configs['overtime']!, employees),
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: _isSaving ? null : () => _save(configs),
