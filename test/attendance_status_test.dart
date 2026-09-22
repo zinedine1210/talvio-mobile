@@ -27,6 +27,15 @@ void main() {
       expect(action, AttendanceAction.done);
     });
 
+    test('record today as the real backend shape (RFC3339, not bare date) -> clockOut', () {
+      // Regression: talvio-backend serializes `date` as
+      // "2026-01-15T00:00:00Z", not a bare "2026-01-15" string.
+      final action = determineAttendanceAction([
+        {'date': '2026-01-15T00:00:00Z', 'clock_in_at': '2026-01-15T08:00:00Z', 'clock_out_at': null},
+      ], '2026-01-15');
+      expect(action, AttendanceAction.clockOut);
+    });
+
     test('only a record from a previous day -> clockIn', () {
       final action = determineAttendanceAction([
         {

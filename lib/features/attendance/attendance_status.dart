@@ -9,19 +9,34 @@ AttendanceAction determineAttendanceAction(
   List<Map<String, dynamic>> records,
   String todayDate,
 ) {
-  Map<String, dynamic>? todayRecord;
-  for (final r in records) {
-    if (r['date']?.toString() == todayDate) {
-      todayRecord = r;
-      break;
-    }
-  }
+  final todayRecord = findAttendanceForDate(records, todayDate);
   if (todayRecord == null) return AttendanceAction.clockIn;
   final clockOutAt = todayRecord['clock_out_at'];
   if (clockOutAt == null || clockOutAt.toString().isEmpty) {
     return AttendanceAction.clockOut;
   }
   return AttendanceAction.done;
+}
+
+/// Finds the record in `records` whose `date` field matches `targetDate`
+/// ("YYYY-MM-DD"). Backend serializes `date` as a full RFC3339 timestamp
+/// (e.g. "2026-09-21T00:00:00Z"), not a bare date string — parse it instead
+/// of comparing raw strings. Stays in UTC (no .toLocal()): the backend
+/// already encodes this at UTC midnight to mark the Jakarta calendar day
+/// (see talvio-backend's timeutil.DateOf), so converting to the device's
+/// local zone could shift it to the wrong day.
+Map<String, dynamic>? findAttendanceForDate(
+  List<Map<String, dynamic>> records,
+  String targetDate,
+) {
+  for (final r in records) {
+    final parsed = DateTime.tryParse(r['date']?.toString() ?? '');
+    if (parsed == null) continue;
+    final recordDate =
+        '${parsed.year.toString().padLeft(4, '0')}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}';
+    if (recordDate == targetDate) return r;
+  }
+  return null;
 }
 
 /// Today's date as `YYYY-MM-DD`. Uses the device's local clock — MVP
