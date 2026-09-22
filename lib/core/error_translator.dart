@@ -78,6 +78,32 @@ String? _translateCode(AppLocalizations t, String? code) {
       return t.errorLeaveNotPending;
     case 'NO_HR_ADMIN':
       return t.errorNoHrAdmin;
+    case 'INVALID_CORRECTION_FIELD':
+      return t.errorInvalidCorrectionField;
+    case 'CORRECTION_NOT_FOUND':
+      return t.errorCorrectionNotFound;
+    case 'CORRECTION_NOT_PENDING':
+      return t.errorCorrectionNotPending;
+    case 'INVALID_TIME_FORMAT':
+      return t.errorInvalidTimeFormat;
+    case 'OVERTIME_INVALID_RANGE':
+      return t.errorOvertimeInvalidRange;
+    case 'OVERTIME_ATTENDANCE_NOT_FOUND':
+      return t.errorOvertimeAttendanceNotFound;
+    case 'OVERTIME_CLOCKOUT_INSUFFICIENT':
+      return t.errorOvertimeClockOutInsufficient;
+    case 'OVERTIME_REQUEST_NOT_FOUND':
+      return t.errorOvertimeRequestNotFound;
+    case 'OVERTIME_NOT_PENDING':
+      return t.errorOvertimeNotPending;
+    case 'INVALID_SALARY_COMPONENT_TYPE':
+      return t.errorInvalidSalaryComponentType;
+    case 'INVALID_AMOUNT_TYPE':
+      return t.errorInvalidAmountType;
+    case 'SALARY_COMPONENT_NOT_FOUND':
+      return t.errorSalaryComponentNotFound;
+    case 'PAYROLL_RUN_NOT_FOUND':
+      return t.errorPayrollRunNotFound;
     default:
       return null;
   }
