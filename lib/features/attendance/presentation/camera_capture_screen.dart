@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../face_matching.dart';
 import '../liveness_check.dart';
 
 /// How often to run face detection on the live preview. ML Kit inference
@@ -13,18 +16,38 @@ import '../liveness_check.dart';
 /// the guard prevents frames queueing up faster than they can be processed.
 const _detectionInterval = Duration(milliseconds: 350);
 
+/// Max auto-capture+match attempts before giving up and handing control
+/// back to a manual shutter tap — per SPEC.md's "never truly locked out"
+/// rule (same cap the old post-capture retry dialog used).
+const _maxFaceMatchAttempts = 3;
+
 /// Full-screen camera capture, used for attendance photos — deliberately
 /// camera-only (no gallery picker), since attendance photos must be a live
 /// capture, not a pre-existing image.
 ///
 /// Runs face+liveness detection live on the preview stream (not
-/// snap-then-validate): the shutter button only enables once a real face
-/// with eyes open is actually in frame, so whatever gets captured has
-/// already passed the same liveness bar `isLiveFace` enforces — the caller
-/// (attendance_screen.dart) no longer needs to re-check the captured file.
-/// Pops with the captured file path, or null if the user backs out.
+/// snap-then-validate): the shutter only fires once a real face with eyes
+/// open is actually in frame.
+///
+/// When [profilePhotoUrl] is given (attendance clock-in/out with an
+/// enrolled profile photo), it goes further: as soon as a live face is
+/// detected it automatically captures and face-matches against that photo,
+/// looping (release the shutter, wait for the next live face, try again)
+/// on a mismatch/uncertain result up to [_maxFaceMatchAttempts] times —
+/// the whole point is the user never has to tap anything for the happy
+/// path. Pops with `{'path', 'score', 'status'}` once matched or once
+/// attempts run out (falling back to a manual shutter tap from there, still
+/// never truly locking the user out).
+///
+/// When [profilePhotoUrl] is null/empty (profile-photo setup, or an
+/// employee with no enrolled photo yet), behaves exactly like before:
+/// liveness gates a manual shutter, pops with the plain photo path string.
 class CameraCaptureScreen extends StatefulWidget {
-  const CameraCaptureScreen({super.key});
+  const CameraCaptureScreen({super.key, this.profilePhotoUrl});
+
+  final String? profilePhotoUrl;
+
+  bool get _matchesProfile => profilePhotoUrl != null && profilePhotoUrl!.isNotEmpty;
 
   @override
   State<CameraCaptureScreen> createState() => _CameraCaptureScreenState();
@@ -40,10 +63,22 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   bool _liveFaceOk = false;
   DateTime? _lastDetectionAt;
 
+  FaceEmbedder? _embedder;
+  List<double>? _profileEmbedding;
+  bool _profileReady = false;
+  FaceMatchResult _matchResult = const FaceMatchResult(0, FaceMatchStatus.notChecked);
+  int _matchAttempts = 0;
+  bool _gaveUpOnMatch = false;
+
   @override
   void initState() {
     super.initState();
     _initFuture = _init();
+    if (widget._matchesProfile) {
+      _loadProfileEmbedding();
+    } else {
+      _profileReady = true;
+    }
   }
 
   Future<void> _init() async {
@@ -66,8 +101,55 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     }
     _detector = FaceDetector(options: FaceDetectorOptions(enableClassification: true));
     setState(() => _controller = controller);
-    await controller.startImageStream((image) => _onFrame(image, camera));
+    await _startStreaming();
+  }
+
+  Future<void> _startStreaming() async {
+    final controller = _controller;
+    if (controller == null || _isStreaming) return;
+    await controller.startImageStream((image) => _onFrame(image, controller.description));
     _isStreaming = true;
+  }
+
+  /// Downloads the enrolled profile photo and computes its embedding once,
+  /// up front, so every subsequent auto-capture only has to embed the fresh
+  /// live photo. Falls back to liveness-only (never blocks the user) if
+  /// this fails for any reason — same "never truly locked out" guarantee
+  /// as a mismatch/uncertain result.
+  Future<void> _loadProfileEmbedding() async {
+    final url = widget.profilePhotoUrl!;
+    try {
+      final embedder = await FaceEmbedder.load();
+      final profileFile = await _downloadToTempFile(url);
+      List<double>? embedding;
+      try {
+        embedding = await embedder.embedFaceInImageFile(profileFile.path);
+      } finally {
+        await profileFile.delete();
+      }
+      if (!mounted) {
+        embedder.close();
+        return;
+      }
+      // Kept even if embedding is null (no face found in the profile photo)
+      // — dispose() closes it either way, and _matchAgainstProfile bails
+      // out safely on a null embedding without needing this to be null too.
+      setState(() {
+        _embedder = embedder;
+        _profileEmbedding = embedding;
+        _profileReady = true;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _profileReady = true);
+    }
+  }
+
+  Future<File> _downloadToTempFile(String url) async {
+    final response = await Dio().get<List<int>>(
+      url,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return writeBytesToTempFile(Uint8List.fromList(response.data!), '.jpg');
   }
 
   void _onFrame(CameraImage image, CameraDescription camera) {
@@ -78,8 +160,20 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     _isDetecting = true;
     _detectLiveFace(image, camera).then((ok) {
       _isDetecting = false;
-      if (mounted && ok != _liveFaceOk) setState(() => _liveFaceOk = ok);
+      if (!mounted) return;
+      if (ok != _liveFaceOk) setState(() => _liveFaceOk = ok);
+      if (ok) _maybeAutoCapture();
     });
+  }
+
+  /// Fires an auto capture+match cycle the instant a live face shows up —
+  /// only in profile-match mode, only while there's still something useful
+  /// to try. `_capture()` itself guards re-entrancy via `_isCapturing`.
+  void _maybeAutoCapture() {
+    if (!widget._matchesProfile || !_profileReady || _profileEmbedding == null) return;
+    if (_gaveUpOnMatch || _isCapturing) return;
+    if (_matchResult.status == FaceMatchStatus.match) return;
+    _capture();
   }
 
   Future<bool> _detectLiveFace(CameraImage image, CameraDescription camera) async {
@@ -122,6 +216,21 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     );
   }
 
+  Future<FaceMatchResult> _matchAgainstProfile(String photoPath) async {
+    final embedder = _embedder;
+    final profileEmbedding = _profileEmbedding;
+    if (embedder == null || profileEmbedding == null) {
+      return const FaceMatchResult(0, FaceMatchStatus.notChecked);
+    }
+    final liveEmbedding = await embedder.embedFaceInImageFile(photoPath);
+    if (liveEmbedding == null) return const FaceMatchResult(0, FaceMatchStatus.notChecked);
+    return classifyDistance(euclideanDistance(liveEmbedding, profileEmbedding));
+  }
+
+  /// The one capture path, used both by the auto-trigger and the manual
+  /// shutter (which stays available the whole time as a fallback — e.g. if
+  /// the user wants to force a check right away, or once attempts run out
+  /// and only a manual tap can finish the flow).
   Future<void> _capture() async {
     final controller = _controller;
     if (controller == null || _isCapturing || !_liveFaceOk) return;
@@ -133,7 +242,44 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       }
       final file = await controller.takePicture();
       if (!mounted) return;
-      Navigator.of(context).pop(file.path);
+
+      if (!widget._matchesProfile) {
+        Navigator.of(context).pop(file.path);
+        return;
+      }
+      if (_gaveUpOnMatch) {
+        // Attempts already exhausted earlier — this manual tap just
+        // finishes the flow with the last known (mismatch/uncertain)
+        // result, per SPEC's "never truly locked out" rule.
+        Navigator.of(context).pop({
+          'path': file.path,
+          'score': _matchResult.score,
+          'status': _matchResult.status.apiValue,
+        });
+        return;
+      }
+
+      setState(() => _matchAttempts++);
+      final result = await _matchAgainstProfile(file.path);
+      if (!mounted) return;
+      setState(() => _matchResult = result);
+
+      final exhausted = _matchAttempts >= _maxFaceMatchAttempts;
+      if (result.status == FaceMatchStatus.match || exhausted) {
+        if (exhausted && result.status != FaceMatchStatus.match) {
+          setState(() => _gaveUpOnMatch = true);
+        }
+        Navigator.of(context).pop({
+          'path': file.path,
+          'score': result.score,
+          'status': result.status.apiValue,
+        });
+        return;
+      }
+
+      // Not matched yet, attempts remain -> keep watching for the next live
+      // face and try again automatically.
+      await _startStreaming();
     } finally {
       if (mounted) setState(() => _isCapturing = false);
     }
@@ -147,7 +293,17 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     }
     controller?.dispose();
     _detector?.close();
+    _embedder?.close();
     super.dispose();
+  }
+
+  String _statusText(AppLocalizations t) {
+    if (!_liveFaceOk) return t.positionYourFaceStatus;
+    if (!widget._matchesProfile) return t.liveFaceDetectedStatus;
+    if (_gaveUpOnMatch) return t.faceMatchTapToContinueStatus;
+    if (_isCapturing) return t.verifyingFaceStatus;
+    if (_matchAttempts > 0) return t.faceMismatchRetryingStatus;
+    return t.liveFaceDetectedStatus;
   }
 
   @override
@@ -162,6 +318,9 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
           if (controller == null || !controller.value.isInitialized) {
             return const Center(child: CircularProgressIndicator());
           }
+          final statusColor = !_liveFaceOk
+              ? Colors.black
+              : (_gaveUpOnMatch ? Colors.orange : Colors.green);
           return Stack(
             fit: StackFit.expand,
             children: [
@@ -174,11 +333,11 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: (_liveFaceOk ? Colors.green : Colors.black).withValues(alpha: 0.6),
+                      color: statusColor.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      _liveFaceOk ? t.liveFaceDetectedStatus : t.positionYourFaceStatus,
+                      _statusText(t),
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                     ),
                   ),

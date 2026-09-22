@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -12,14 +11,8 @@ import '../../../core/geo.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../employee/providers/employee_providers.dart';
 import '../attendance_status.dart';
-import '../face_matching.dart';
 import '../providers/attendance_providers.dart';
 import 'live_location_map.dart';
-
-/// Max face-match retries before submitting anyway for HR review — per
-/// SPEC.md's "never truly locked out" rule. Liveness has no such cap (that
-/// gate stays retry-until-cancel, unchanged from Fase 2a).
-const _maxFaceMatchAttempts = 3;
 
 /// Clock-in/out flow, in the order fixed by SPEC.md "Urutan Alur
 /// Clock-in/Clock-out": location check first (cheap), then camera +
@@ -93,30 +86,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     );
   }
 
-  /// Returns true = retake photo, false = submit anyway, null = cancel.
-  Future<bool?> _showFaceMatchRetryDialog(AppLocalizations t) async {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(t.faceMatchRetryTitle),
-        content: Text(t.faceMatchRetryMessage),
-        actions: [
-          TextButton(onPressed: () => context.pop(), child: Text(t.cancelButton)),
-          TextButton(onPressed: () => context.pop(false), child: Text(t.submitAnywayButton)),
-          FilledButton(onPressed: () => context.pop(true), child: Text(t.retakeButton)),
-        ],
-      ),
-    );
-  }
-
-  Future<File> _downloadToTempFile(String url) async {
-    final response = await Dio().get<List<int>>(
-      url,
-      options: Options(responseType: ResponseType.bytes),
-    );
-    return writeBytesToTempFile(Uint8List.fromList(response.data!), '.jpg');
-  }
-
   void _showMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
@@ -151,66 +120,37 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         }
       }
 
-      // Camera screen gates capture on live face+liveness detection (see
-      // camera_capture_screen.dart) — a returned path has already passed
-      // that bar, no separate post-capture liveness re-check needed here.
+      // Camera screen verifies live: it gates capture on face+liveness
+      // detection, and — when the employee has an enrolled profile photo —
+      // auto-captures and face-matches against it on its own, retrying
+      // automatically on a mismatch/uncertain result (see
+      // camera_capture_screen.dart). A returned result has already passed
+      // that bar; nothing left to redo here.
       if (!mounted) return;
-      final firstCapture = await context.push<String>('/attendance/capture');
-      if (firstCapture == null) return; // user backed out of camera
-      String photoPath = firstCapture;
-
-      var matchResult = const FaceMatchResult(0, FaceMatchStatus.notChecked);
       final profilePhotoUrl = me['photo_url'] as String?;
-      final embedder = (profilePhotoUrl != null && profilePhotoUrl.isNotEmpty)
-          ? await FaceEmbedder.load()
-          : null;
-      var matchAttempts = 0;
-      var gaveUpOnMatch = false;
-      try {
-        while (embedder != null) {
-          matchAttempts++;
-          final liveEmbedding = await embedder.embedFaceInImageFile(photoPath);
-          final profileFile = await _downloadToTempFile(profilePhotoUrl!);
-          List<double>? profileEmbedding;
-          try {
-            profileEmbedding = await embedder.embedFaceInImageFile(profileFile.path);
-          } finally {
-            await profileFile.delete();
-          }
+      final hasProfilePhoto = profilePhotoUrl != null && profilePhotoUrl.isNotEmpty;
 
-          if (liveEmbedding == null || profileEmbedding == null) {
-            matchResult = const FaceMatchResult(0, FaceMatchStatus.notChecked);
-            break;
-          }
-
-          final distance = euclideanDistance(liveEmbedding, profileEmbedding);
-          matchResult = classifyDistance(distance);
-          if (matchResult.status == FaceMatchStatus.match) break;
-          if (matchAttempts >= _maxFaceMatchAttempts) {
-            gaveUpOnMatch = true;
-            break;
-          }
-
-          if (!mounted) return;
-          final choice = await _showFaceMatchRetryDialog(t);
-          if (choice == null) return; // cancel entirely
-          if (choice == false) break; // submit anyway, right now
-          // choice == true -> retake (camera gates on liveness again, same
-          // as the first capture) and loop back for another match attempt.
-          if (!mounted) return;
-          final retaken = await context.push<String>('/attendance/capture');
-          if (retaken == null) return; // user backed out of camera
-          photoPath = retaken;
-        }
-      } finally {
-        embedder?.close();
+      String photoPath;
+      double? faceScore;
+      String faceStatus = 'not_checked';
+      if (hasProfilePhoto) {
+        final result = await context.push<Map<String, dynamic>>(
+          '/attendance/capture',
+          extra: profilePhotoUrl,
+        );
+        if (result == null) return; // user backed out of camera
+        photoPath = result['path'] as String;
+        faceStatus = result['status'] as String;
+        faceScore = faceStatus == 'not_checked' ? null : (result['score'] as num).toDouble();
+      } else {
+        final path = await context.push<String>('/attendance/capture');
+        if (path == null) return; // user backed out of camera
+        photoPath = path;
       }
 
       final bytes = await File(photoPath).readAsBytes();
       final filename = photoPath.split(Platform.pathSeparator).last;
       final api = ref.read(attendanceApiProvider);
-      final faceScore = matchResult.status == FaceMatchStatus.notChecked ? null : matchResult.score;
-      final faceStatus = matchResult.status.apiValue;
       if (action == AttendanceAction.clockIn) {
         await api.clockIn(
           photoBytes: bytes,
@@ -234,7 +174,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         );
         _showMessage(t.clockOutSuccessMessage);
       }
-      if (gaveUpOnMatch) _showMessage(t.faceMatchGaveUpMessage);
+      if (faceStatus == 'mismatch' || faceStatus == 'uncertain') {
+        _showMessage(t.faceMatchGaveUpMessage);
+      }
       ref.invalidate(myAttendanceProvider);
     } on DioException catch (e) {
       if (!mounted) return;
