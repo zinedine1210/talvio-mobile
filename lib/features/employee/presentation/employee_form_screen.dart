@@ -117,7 +117,14 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
           .read(employeeApiProvider)
           .uploadPhoto(widget.employee!['id'] as int, bytes, filename);
       if (!mounted) return;
-      setState(() => _photoUrl = result['photo_url']?.toString());
+      final newUrl = result['photo_url']?.toString();
+      // Backend re-uses the same URL on every re-upload (overwritten in
+      // place, no versioning) — Flutter's image cache keys purely on that
+      // URL string, so without an explicit evict it keeps serving the old
+      // cached bytes and the photo appears not to have changed.
+      if (newUrl != null) await NetworkImage(newUrl).evict();
+      if (!mounted) return;
+      setState(() => _photoUrl = newUrl);
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(t.photoUploadedMessage)));
     } on DioException catch (e) {
