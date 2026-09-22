@@ -88,9 +88,8 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final steps = [
-      Step(
-        title: Text(t.officeLocationStep),
-        isActive: _currentStep >= 0,
+      (
+        title: t.officeLocationStep,
         content: Column(
           children: [
             for (var i = 0; i < _locations.length; i++)
@@ -156,9 +155,8 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
           ],
         ),
       ),
-      Step(
-        title: Text(t.workHoursStep),
-        isActive: _currentStep >= 1,
+      (
+        title: t.workHoursStep,
         content: Column(
           children: [
             ListTile(
@@ -179,9 +177,8 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
           ],
         ),
       ),
-      Step(
-        title: Text(t.leaveOvertimePolicyStep),
-        isActive: _currentStep >= 2,
+      (
+        title: t.leaveOvertimePolicyStep,
         content: Column(
           children: [
             TextField(
@@ -197,9 +194,8 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
           ],
         ),
       ),
-      Step(
-        title: Text(t.payrollStep),
-        isActive: _currentStep >= 3,
+      (
+        title: t.payrollStep,
         content: Column(
           children: [
             TextField(
@@ -217,43 +213,78 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
       ),
     ];
 
+    void onContinue() {
+      if (_currentStep == 0 && !_locationsValid) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(t.completeLocationDataWarning)));
+        return;
+      }
+      if (_currentStep < steps.length - 1) {
+        setState(() => _currentStep += 1);
+      } else if (!_isSubmitting) {
+        _submit();
+      }
+    }
+
+    // Hand-rolled step navigation instead of Stepper — Stepper + Material 3
+    // crashes ("RenderBox was not laid out") on this Flutter version, a
+    // known upstream framework issue, not something fixable from app code.
     return Scaffold(
       appBar: AppBar(title: Text(t.companySetupTitle)),
-      body: Stepper(
-        currentStep: _currentStep,
-        steps: steps,
-        onStepContinue: () {
-          if (_currentStep == 0 && !_locationsValid) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(t.completeLocationDataWarning)));
-            return;
-          }
-          if (_currentStep < steps.length - 1) {
-            setState(() => _currentStep += 1);
-          } else if (!_isSubmitting) {
-            _submit();
-          }
-        },
-        onStepCancel: _currentStep == 0 ? null : () => setState(() => _currentStep -= 1),
-        controlsBuilder: (context, details) => Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: Row(
-            children: [
-              FilledButton(
-                onPressed: _isSubmitting ? null : details.onStepContinue,
-                child: _isSubmitting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(_currentStep == steps.length - 1 ? t.finishButton : t.continueButton),
-              ),
-              if (details.onStepCancel != null)
-                TextButton(onPressed: details.onStepCancel, child: Text(t.backButton)),
-            ],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: LinearProgressIndicator(value: (_currentStep + 1) / steps.length),
           ),
-        ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(steps[_currentStep].title,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 16),
+                  steps[_currentStep].content,
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              children: [
+                if (_currentStep > 0) ...[
+                  TextButton(
+                    onPressed: () => setState(() => _currentStep -= 1),
+                    child: Text(t.backButton),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                // FilledButton's theme sets minimumSize width: infinity, so
+                // it needs a bounded-width ancestor here (Row alone won't
+                // give it one) — same crash class as the Stepper this
+                // replaced if left unwrapped.
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _isSubmitting ? null : onContinue,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(_currentStep == steps.length - 1 ? t.finishButton : t.continueButton),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
