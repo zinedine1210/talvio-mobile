@@ -64,7 +64,7 @@ Semua alur lain (izin, lembur, koreksi, payroll) mengikuti satu aturan yang sama
 | 📢 **Pengumuman** | Broadcast ke seluruh perusahaan atau satu departemen |
 | 🔔 **Notifikasi** | Item yang butuh approval tampil sebagai badge, bukan menu yang numpuk di beranda |
 
-## Tampilan Aplikasi
+## Design Sementara Aplikasi Talvio
 
 <div align="center">
 
