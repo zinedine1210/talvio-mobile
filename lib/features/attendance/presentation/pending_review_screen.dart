@@ -159,9 +159,11 @@ class PendingReviewScreen extends ConsumerWidget {
                               child: Text(t.rejectButton),
                             ),
                             const SizedBox(width: 8),
-                            FilledButton(
-                              onPressed: () => _review(context, ref, r['id'] as int, 'approved_wfh'),
-                              child: Text(t.approveButton),
+                            Expanded(
+                              child: FilledButton(
+                                onPressed: () => _review(context, ref, r['id'] as int, 'approved_wfh'),
+                                child: Text(t.approveButton),
+                              ),
                             ),
                           ],
                         ),

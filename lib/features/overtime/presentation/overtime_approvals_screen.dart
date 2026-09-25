@@ -103,9 +103,11 @@ class OvertimeApprovalsScreen extends ConsumerWidget {
                               child: Text(t.rejectButton),
                             ),
                             const SizedBox(width: 8),
-                            FilledButton(
-                              onPressed: () => _act(context, ref, r['id'] as int, true),
-                              child: Text(t.approveButton),
+                            Expanded(
+                              child: FilledButton(
+                                onPressed: () => _act(context, ref, r['id'] as int, true),
+                                child: Text(t.approveButton),
+                              ),
                             ),
                           ],
                         ),
