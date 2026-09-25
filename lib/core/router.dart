@@ -3,13 +3,17 @@ import '../features/auth/presentation/register_company_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/onboarding/presentation/onboarding_wizard_screen.dart';
 import '../features/dashboard/presentation/home_screen.dart';
+import '../features/dashboard/presentation/notifications_screen.dart';
+import 'app_shell.dart';
 import '../features/employee/presentation/employee_list_screen.dart';
 import '../features/employee/presentation/employee_form_screen.dart';
 import '../features/employee/presentation/department_list_screen.dart';
+import '../features/company/presentation/company_settings_screen.dart';
 import '../features/employee/presentation/my_profile_screen.dart';
 import '../features/attendance/presentation/attendance_screen.dart';
 import '../features/attendance/presentation/camera_capture_screen.dart';
 import '../features/attendance/presentation/pending_review_screen.dart';
+import '../features/attendance/presentation/attendance_record_detail_screen.dart';
 import '../features/leave/presentation/leave_form_screen.dart';
 import '../features/leave/presentation/my_leave_screen.dart';
 import '../features/leave/presentation/leave_approvals_screen.dart';
@@ -44,9 +48,19 @@ final appRouter = GoRouter(
       path: '/onboarding',
       builder: (context, state) => const OnboardingWizardScreen(),
     ),
-    GoRoute(
-      path: '/home',
-      builder: (context, state) => const HomeScreen(),
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(routes: [
+          GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(path: '/profile', builder: (context, state) => const MyProfileScreen()),
+        ]),
+      ],
     ),
     GoRoute(
       path: '/employees',
@@ -66,8 +80,8 @@ final appRouter = GoRouter(
       builder: (context, state) => const DepartmentListScreen(),
     ),
     GoRoute(
-      path: '/profile',
-      builder: (context, state) => const MyProfileScreen(),
+      path: '/company/settings',
+      builder: (context, state) => const CompanySettingsScreen(),
     ),
     GoRoute(
       path: '/attendance',
@@ -83,6 +97,11 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/attendance/pending-review',
       builder: (context, state) => const PendingReviewScreen(),
+    ),
+    GoRoute(
+      path: '/attendance/record-detail',
+      builder: (context, state) =>
+          AttendanceRecordDetailScreen(record: state.extra as Map<String, dynamic>),
     ),
     GoRoute(
       path: '/leave',
