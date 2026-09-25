@@ -5,6 +5,7 @@
   "@homeGreeting": {
     "placeholders": { "name": { "type": "String" } }
   },
+  "homeMenu": "Home",
   "emailLabel": "Email",
   "passwordLabel": "Password",
   "nameLabel": "Name",
@@ -89,6 +90,18 @@
   "deactivateDepartmentTitle": "Deactivate Department",
   "confirmDeactivateDepartment": "Are you sure you want to deactivate {name}?",
   "@confirmDeactivateDepartment": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "companySettingsMenu": "Company Settings",
+  "companySettingsTitle": "Company Settings",
+  "addressLabel": "Address",
+  "settingsSavedMessage": "Settings saved successfully",
+  "locationsSectionTitle": "Office Locations",
+  "addLocationTitle": "Add Location",
+  "editLocationTitle": "Edit Location",
+  "deactivateLocationTitle": "Deactivate Location",
+  "confirmDeactivateLocation": "Are you sure you want to deactivate location {name}?",
+  "@confirmDeactivateLocation": {
     "placeholders": { "name": { "type": "String" } }
   },
 
@@ -263,6 +276,10 @@
   "reportsColumnPendingReview": "Pending Review",
   "reportsColumnMissingClockout": "Missing Clockout",
   "reportsColumnRejected": "Rejected",
+  "reportsColumnDate": "Date",
+  "attendanceApprovedWfhLabel": "Approved (Outside Radius)",
+  "attendanceNoRecordLabel": "No Attendance Record",
+  "attendanceDetailTitle": "Attendance Detail",
   "reportsColumnCutiUsed": "Cuti Used",
   "reportsColumnCutiQuota": "Cuti Quota",
   "reportsColumnIzin": "Izin Days",
@@ -334,5 +351,8 @@
   "dashboardPendingWfhLabel": "Attendance awaiting",
   "dashboardPendingCorrectionLabel": "Corrections awaiting",
   "dashboardAnnouncementsHeading": "Recent Announcements",
-  "dashboardSeeAllButton": "See all"
+  "dashboardSeeAllButton": "See all",
+  "notificationsTitle": "Notifications",
+  "notificationsEmptyMessage": "No notifications right now",
+  "todayAttendanceTitle": "Today's Attendance"
 }

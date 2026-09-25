@@ -5,6 +5,7 @@
   "@homeGreeting": {
     "placeholders": { "name": { "type": "String" } }
   },
+  "homeMenu": "Beranda",
   "emailLabel": "Email",
   "passwordLabel": "Password",
   "nameLabel": "Nama",
@@ -89,6 +90,18 @@
   "deactivateDepartmentTitle": "Nonaktifkan Departemen",
   "confirmDeactivateDepartment": "Yakin ingin menonaktifkan {name}?",
   "@confirmDeactivateDepartment": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "companySettingsMenu": "Pengaturan Perusahaan",
+  "companySettingsTitle": "Pengaturan Perusahaan",
+  "addressLabel": "Alamat",
+  "settingsSavedMessage": "Pengaturan berhasil disimpan",
+  "locationsSectionTitle": "Lokasi Kantor",
+  "addLocationTitle": "Tambah Lokasi",
+  "editLocationTitle": "Ubah Lokasi",
+  "deactivateLocationTitle": "Nonaktifkan Lokasi",
+  "confirmDeactivateLocation": "Yakin ingin menonaktifkan lokasi {name}?",
+  "@confirmDeactivateLocation": {
     "placeholders": { "name": { "type": "String" } }
   },
 
@@ -263,6 +276,10 @@
   "reportsColumnPendingReview": "Perlu Ditinjau",
   "reportsColumnMissingClockout": "Lupa Pulang",
   "reportsColumnRejected": "Ditolak",
+  "reportsColumnDate": "Tanggal",
+  "attendanceApprovedWfhLabel": "Disetujui (Luar Radius)",
+  "attendanceNoRecordLabel": "Tidak Ada Absensi",
+  "attendanceDetailTitle": "Detail Absensi",
   "reportsColumnCutiUsed": "Cuti Terpakai",
   "reportsColumnCutiQuota": "Kuota Cuti",
   "reportsColumnIzin": "Hari Izin",
@@ -334,5 +351,8 @@
   "dashboardPendingWfhLabel": "Presensi menunggu",
   "dashboardPendingCorrectionLabel": "Koreksi menunggu",
   "dashboardAnnouncementsHeading": "Pengumuman Terbaru",
-  "dashboardSeeAllButton": "Lihat semua"
+  "dashboardSeeAllButton": "Lihat semua",
+  "notificationsTitle": "Notifikasi",
+  "notificationsEmptyMessage": "Tidak ada notifikasi saat ini",
+  "todayAttendanceTitle": "Absensi Hari Ini"
 }
