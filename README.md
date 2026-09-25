@@ -18,7 +18,7 @@
 </div>
 
 > [!NOTE]
-> Repo ini adalah aplikasi mobile-nya. Backend REST API (Go + Gin + PostgreSQL) ada di repo terpisah, `talvio-backend`. Badge CI di atas jalanin `flutter analyze` + `flutter test` beneran lewat GitHub Actions tiap push — bukan gambar statis.
+> Repo ini adalah aplikasi mobile-nya. Backend REST API (Go + Gin + PostgreSQL) ada di repo terpisah, `talvio-backend`. Badge CI di atas jalanin `flutter analyze` + `flutter test` beneran lewat GitHub Actions tiap push, bukan gambar statis.
 
 ---
 
@@ -47,9 +47,9 @@
 
 ## Kenapa Talvio
 
-Sebagian besar aplikasi presensi kantor cuma verifikasi lokasi, gampang dikelabui foto orang lain atau titip absen. Talvio menutup dua celah itu sekaligus: **geofencing** (harus dalam radius kantor) **+ face liveness dan face-matching yang jalan langsung di HP** — jadi tidak ada foto wajah karyawan yang keluar ke server pihak ketiga, sekaligus tetap murah dijalankan karena tidak butuh API cloud berbayar per verifikasi.
+Sebagian besar aplikasi presensi kantor cuma verifikasi lokasi, gampang dikelabui foto orang lain atau titip absen. Talvio menutup dua celah itu sekaligus: **geofencing** (harus dalam radius kantor) **+ face liveness dan face-matching yang jalan langsung di HP**, jadi tidak ada foto wajah karyawan yang keluar ke server pihak ketiga, sekaligus tetap murah dijalankan karena tidak butuh API cloud berbayar per verifikasi.
 
-Semua alur lain (izin, lembur, koreksi, payroll) mengikuti satu aturan yang sama: siapa yang berhak menyetujui apa diatur lewat konfigurasi per perusahaan (`approval_configs`), bukan di-hardcode di kode — kecuali koreksi absensi, yang sengaja selalu ke HR.
+Semua alur lain (izin, lembur, koreksi, payroll) mengikuti satu aturan yang sama: siapa yang berhak menyetujui apa diatur lewat konfigurasi per perusahaan (`approval_configs`), bukan di-hardcode di kode, kecuali koreksi absensi, yang sengaja selalu ke HR.
 
 ## Fitur per Modul
 
@@ -57,7 +57,7 @@ Semua alur lain (izin, lembur, koreksi, payroll) mengikuti satu aturan yang sama
 |---|---|
 | 📍 **Absensi** | Clock-in/out dengan cek radius lokasi, liveness check, dan face-matching on-device terhadap foto profil |
 | 🌴 **Izin & Cuti** | Ajukan cuti/izin/sakit, kuota tahunan terpotong otomatis, approval lewat resolver |
-| ⏰ **Lembur** | Diklaim setelah clock-out, divalidasi terhadap jam pulang aktual — tidak bisa asal klaim |
+| ⏰ **Lembur** | Diklaim setelah clock-out, divalidasi terhadap jam pulang aktual, tidak bisa asal klaim |
 | 📝 **Koreksi Absensi** | Revisi jam masuk/pulang yang keliru, selalu lewat approval HR |
 | 💰 **Payroll** | Komponen gaji custom per karyawan, generate slip otomatis per periode cutoff |
 | 📊 **Laporan** | Ringkasan absensi & cuti (personal / company-wide), export PDF & XLSX |
@@ -67,13 +67,13 @@ Semua alur lain (izin, lembur, koreksi, payroll) mengikuti satu aturan yang sama
 ## Tampilan Aplikasi
 
 > [!NOTE]
-> Placeholder di bawah menunggu screenshot asli dari `docs/screenshots/` — sambungkan HP lewat USB lalu minta di-generate ulang.
+> Placeholder di bawah menunggu screenshot asli dari `docs/screenshots/`, sambungkan HP lewat USB lalu minta di-generate ulang.
 
 <div align="center">
 
-| Home Karyawan | Absensi | Home HR | Slip Gaji |
+| Home Karyawan | Absensi | Home HR | Laporan Absensi |
 |:---:|:---:|:---:|:---:|
-| <img src="docs/screenshots/home-employee.png" width="200"/> | <img src="docs/screenshots/attendance.png" width="200"/> | <img src="docs/screenshots/home-hr.png" width="200"/> | <img src="docs/screenshots/payslip.png" width="200"/> |
+| <img src="docs/screenshots/karyawan.jpeg" width="200"/> | <img src="docs/screenshots/absen.jpeg" width="200"/> | <img src="docs/screenshots/hr.jpeg" width="200"/> | <img src="docs/screenshots/laporan.jpeg" width="200"/> |
 
 </div>
 
@@ -98,7 +98,7 @@ sequenceDiagram
     participant D as PostgreSQL
 
     U->>M: Buka layar absen
-    M->>M: Cek GPS — dalam radius kantor?
+    M->>M: Cek GPS, dalam radius kantor?
     M->>M: Liveness check (ML Kit, live di kamera)
     M->>M: Face-match vs foto profil (TFLite, on-device)
     M->>B: POST /attendance/clock-in<br/>(JWT + HMAC signature + foto)
@@ -112,7 +112,7 @@ sequenceDiagram
 
 ### Siklus Status Absensi
 
-Status absensi mengikuti siklus berikut — sekali `hadir`/`rejected` tidak bisa berubah sendiri, hanya lewat review manual:
+Status absensi mengikuti siklus berikut, sekali `hadir`/`rejected` tidak bisa berubah sendiri, hanya lewat review manual:
 
 ```mermaid
 stateDiagram-v2
@@ -125,14 +125,14 @@ stateDiagram-v2
 ```
 
 > [!IMPORTANT]
-> Karyawan tidak pernah benar-benar terkunci dari absen. Kalau face-match gagal berkali-kali, sistem tetap menerima submit dan menandainya `pending_review` untuk ditinjau HR manual lewat foto yang tersimpan — tidak ada skenario karyawan asli gagal absen total karena sistem.
+> Karyawan tidak pernah benar-benar terkunci dari absen. Kalau face-match gagal berkali-kali, sistem tetap menerima submit dan menandainya `pending_review` untuk ditinjau HR manual lewat foto yang tersimpan, tidak ada skenario karyawan asli gagal absen total karena sistem.
 
 ## Role & Akses
 
 | | Employee | HR Admin |
 |---|:---:|:---:|
 | Absen, ajukan izin/lembur/koreksi | ✅ | ❌ (pakai akun karyawan terpisah bila perlu) |
-| Lihat slip gaji & pengumuman sendiri | ✅ | — |
+| Lihat slip gaji & pengumuman sendiri | ✅ | - |
 | Jadi approver (kalau ditunjuk supervisor/delegate) | ✅ | ✅ |
 | Kelola karyawan, departemen, approval routing | ❌ | ✅ |
 | Kelola komponen gaji & jalankan payroll | ❌ | ✅ |
@@ -141,10 +141,10 @@ stateDiagram-v2
 ## Keamanan
 
 - Setiap request ke backend (kecuali `/health`) ditandatangani HMAC-SHA256, ditolak kalau timestamp meleset > 5 menit
-- `company_id` selalu diambil dari klaim JWT lewat middleware — tidak pernah dipercaya dari input client
-- Face-matching 100% on-device (TFLite/MobileFaceNet) — foto wajah tidak pernah dikirim ke pihak ketiga
+- `company_id` selalu diambil dari klaim JWT lewat middleware, tidak pernah dipercaya dari input client
+- Face-matching 100% on-device (TFLite/MobileFaceNet), foto wajah tidak pernah dikirim ke pihak ketiga
 - Rate limiting per-IP di endpoint register & login
-- `JWT_SECRET` dan `API_SIGNING_SECRET` wajib diisi — backend menolak menyala kalau kosong
+- `JWT_SECRET` dan `API_SIGNING_SECRET` wajib diisi, backend menolak menyala kalau kosong
 
 ## Tech Stack
 
@@ -194,7 +194,7 @@ Tiap feature: `data/` (model + panggilan API), `presentation/` (layar + widget),
 ## Menjalankan Secara Lokal
 
 ```bash
-# backend dulu — lihat README talvio-backend untuk .env
+# backend dulu, lihat README talvio-backend untuk .env
 cd talvio-backend && go run ./cmd/api
 
 # lalu mobile
@@ -229,8 +229,8 @@ Detail lengkap tiap kebutuhan fungsional/non-fungsional: lihat [`SRS.md`](./SRS.
 | `202343501557` | `Dela Ramadani` | `Izin/Cuti/Lembur, Laporan, Approval` |
 | `202343501558` | `Haura Nahdah` | `Management Karyawan, Departemen` |
 
-`Rekayasa Perangkat Lunak` — `Universitas Indraprasta PGRI`
+`Rekayasa Perangkat Lunak`, `Universitas Indraprasta PGRI`
 
 ---
 
-<p align="center"><sub>Talvio — HRIS multi-tenant, dibangun bertahap Fase 0 s/d 7.</sub></p>
+<p align="center"><sub>Talvio, HRIS multi-tenant, dibangun bertahap Fase 0 s/d 7.</sub></p>

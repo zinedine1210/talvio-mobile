@@ -6,7 +6,7 @@ Dokumen ini merangkum proses pengembangan aplikasi **Talvio** (HRIS multi-tenant
 
 | | |
 |---|---|
-| **Nama** | Talvio (sebelumnya bernama "Presensia", di-rename penuh — kode, package, identifier — pada 20 September 2026) |
+| **Nama** | Talvio |
 | **Jenis** | HRIS multi-tenant SaaS — tiap perusahaan yang mendaftar mendapat workspace terisolasi |
 | **Backend** | Go 1.26, Gin (router), GORM (ORM), PostgreSQL |
 | **Mobile** | Flutter, Riverpod (state management), GoRouter (routing), Dio (HTTP client) |
