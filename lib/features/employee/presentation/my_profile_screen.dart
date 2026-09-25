@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/api_client.dart';
+import '../../../core/app_bar.dart';
 import '../../../core/error_translator.dart';
 import '../../../core/locale_provider.dart';
 import '../../../l10n/app_localizations.dart';
@@ -37,7 +38,7 @@ class MyProfileScreen extends ConsumerWidget {
     final locale = ref.watch(localeProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(t.myProfileMenu)),
+      appBar: TalvioAppBar(title: t.myProfileMenu),
       body: meAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(translateError(context, e))),
