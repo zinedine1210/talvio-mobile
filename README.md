@@ -66,9 +66,6 @@ Semua alur lain (izin, lembur, koreksi, payroll) mengikuti satu aturan yang sama
 
 ## Tampilan Aplikasi
 
-> [!NOTE]
-> Placeholder di bawah menunggu screenshot asli dari `docs/screenshots/`, sambungkan HP lewat USB lalu minta di-generate ulang.
-
 <div align="center">
 
 | Home Karyawan | Absensi | Home HR | Laporan Absensi |
