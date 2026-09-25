@@ -3,71 +3,68 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../attendance/attendance_status.dart';
+import '../../attendance/providers/attendance_providers.dart';
 import '../providers/dashboard_providers.dart';
 
-/// Sits at the top of HomeScreen's ListView, above the menu cards. Renders
-/// nothing (SizedBox.shrink) while loading or on error — a failed summary
-/// fetch shouldn't block the rest of the home screen from being usable.
-class DashboardSummaryCard extends ConsumerWidget {
-  const DashboardSummaryCard({super.key});
+/// Today's clock-in/out state, front and center on the employee home
+/// screen — the thing people open the app to check first. Renders nothing
+/// while loading/on error so a slow fetch never blocks the rest of the
+/// home screen.
+class TodayAttendanceCard extends ConsumerWidget {
+  const TodayAttendanceCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context)!;
-    final summaryAsync = ref.watch(dashboardSummaryProvider);
-    return summaryAsync.when(
+    final recordsAsync = ref.watch(myAttendanceProvider);
+
+    return recordsAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
-      data: (summary) {
-        final chips = <Widget?>[
-          _pendingChip(context, t.dashboardPendingLeaveLabel, summary['pending_leave_approvals'],
-              () => context.push('/leave/approvals')),
-          _pendingChip(context, t.dashboardPendingOvertimeLabel, summary['pending_overtime_approvals'],
-              () => context.push('/overtime/approvals')),
-          _pendingChip(context, t.dashboardPendingWfhLabel, summary['pending_wfh_reviews'],
-              () => context.push('/attendance/pending-review')),
-          _pendingChip(context, t.dashboardPendingCorrectionLabel, summary['pending_corrections'],
-              () => context.push('/corrections/approvals')),
-        ].whereType<Widget>().toList();
-
-        final announcements =
-            (summary['recent_announcements'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
-
-        if (chips.isEmpty && announcements.isEmpty) return const SizedBox.shrink();
+      data: (records) {
+        final today = findAttendanceForDate(records, todayDateString());
+        final clockInAt = today?['clock_in_at']?.toString();
+        final clockOutAt = (today?['clock_out_at']?.toString().isNotEmpty ?? false)
+            ? today!['clock_out_at'].toString()
+            : null;
 
         return Padding(
-          padding: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.only(bottom: 16),
           child: Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (chips.isNotEmpty)
-                    Wrap(spacing: 8, runSpacing: 8, children: chips),
-                  if (announcements.isNotEmpty) ...[
-                    if (chips.isNotEmpty) const SizedBox(height: 16),
+                  Text(t.todayAttendanceTitle,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 12),
+                  if (clockInAt == null)
+                    Text(t.errorNoOpenClockin)
+                  else
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(t.dashboardAnnouncementsHeading,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w700)),
-                        TextButton(
-                          onPressed: () => context.push('/announcements'),
-                          child: Text(t.dashboardSeeAllButton),
-                        ),
+                        Expanded(child: _timeColumn(context, t.clockInTimeLabel, clockInAt)),
+                        if (clockOutAt != null)
+                          Expanded(child: _timeColumn(context, t.clockOutTimeLabel, clockOutAt)),
                       ],
                     ),
-                    for (final a in announcements)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(a['title']?.toString() ?? '-',
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
-                      ),
-                  ],
+                  const SizedBox(height: 12),
+                  if (clockOutAt == null)
+                    FilledButton(
+                      onPressed: () => context.push('/attendance'),
+                      child: Text(clockInAt == null ? t.clockInButton : t.clockOutButton),
+                    )
+                  else
+                    Text(t.alreadyClockedTodayMessage,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 ],
               ),
             ),
@@ -77,15 +74,75 @@ class DashboardSummaryCard extends ConsumerWidget {
     );
   }
 
-  Widget? _pendingChip(BuildContext context, String label, Object? countValue, VoidCallback onTap) {
-    final count = (countValue as num?)?.toInt() ?? 0;
-    if (count <= 0) return null;
-    final colorScheme = Theme.of(context).colorScheme;
-    return ActionChip(
-      label: Text('$label ($count)'),
-      backgroundColor: colorScheme.secondaryContainer,
-      labelStyle: TextStyle(color: colorScheme.onSecondaryContainer),
-      onPressed: onTap,
+  Widget _timeColumn(BuildContext context, String label, String iso) {
+    final local = DateTime.parse(iso).toLocal();
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        Text('$hh:$mm', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+      ],
+    );
+  }
+}
+
+/// Recent announcements preview. Pending-approval counts used to live here
+/// too, but those moved to the notification bell in the app bar so this
+/// card only ever shows informational content.
+class AnnouncementsPreviewCard extends ConsumerWidget {
+  const AnnouncementsPreviewCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context)!;
+    final summaryAsync = ref.watch(dashboardSummaryProvider);
+    return summaryAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (summary) {
+        final announcements =
+            (summary['recent_announcements'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+        if (announcements.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(t.dashboardAnnouncementsHeading,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700)),
+                      TextButton(
+                        onPressed: () => context.push('/announcements'),
+                        child: Text(t.dashboardSeeAllButton),
+                      ),
+                    ],
+                  ),
+                  for (final a in announcements)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(a['title']?.toString() ?? '-',
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
