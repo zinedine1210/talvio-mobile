@@ -50,6 +50,7 @@ dependencies:
   image: ^4.5.4
   flutter_map: ^8.3.2
   latlong2: ^0.10.1
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -76,6 +77,9 @@ flutter:
 
   assets:
     - assets/models/mobilefacenet.tflite
+    # Placeholder — ganti file ini dengan logo asli (path/nama sama, tidak
+    # perlu ubah kode) begitu logo final siap.
+    - assets/images/logo.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
