@@ -216,7 +216,8 @@ flutter run --dart-define=API_BASE_URL=http://<ip-backend>:8081
 | 6 | Payroll | - |
 | 7 | Pengumuman, dashboard, notifikasi in-app | - |
 
-Detail lengkap tiap kebutuhan fungsional/non-fungsional: lihat [`SRS.md`](./SRS.md).
+- Detail lengkap tiap kebutuhan fungsional/non-fungsional: lihat [`SRS.md`](./SRS.md).
+- Diagram UML & Use Case: [diagrams.net](https://app.diagrams.net/#G1QBJ3MdgNIFTdu57USKDvqCQ35i_suv76#%7B%22pageId%22%3A%22KJ6yhtfLjBdGZLjMx-uU%22%7D)
 
 ## Tim Pengembang
 
