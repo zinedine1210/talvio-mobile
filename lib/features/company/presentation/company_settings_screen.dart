@@ -1,10 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart' as ll;
 
 import '../../../core/error_translator.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../employee/providers/employee_providers.dart';
+import '../../onboarding/presentation/office_location_picker.dart';
 import '../providers/company_providers.dart';
 
 /// HR-only: re-edit the same data the onboarding wizard collected once at
@@ -120,61 +122,74 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
   Future<void> _locationDialog({required String title, Map<String, dynamic>? location}) async {
     final t = AppLocalizations.of(context)!;
     final nameController = TextEditingController(text: location?['name']?.toString() ?? '');
-    final latController = TextEditingController(text: location?['latitude']?.toString() ?? '');
-    final lngController = TextEditingController(text: location?['longitude']?.toString() ?? '');
     final radiusController =
         TextEditingController(text: location?['radius_meters']?.toString() ?? '100');
+    ll.LatLng? point;
+    final existingLat = location?['latitude'] as num?;
+    final existingLng = location?['longitude'] as num?;
+    if (existingLat != null && existingLng != null) {
+      point = ll.LatLng(existingLat.toDouble(), existingLng.toDouble());
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: t.locationNameHint),
-                autofocus: true,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: latController,
-                decoration: InputDecoration(labelText: t.latitudeLabel),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: lngController,
-                decoration: InputDecoration(labelText: t.longitudeLabel),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: radiusController,
-                decoration: InputDecoration(labelText: t.radiusLabel),
-                keyboardType: TextInputType.number,
-              ),
-            ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(title),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(labelText: t.locationNameHint),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final picked = await Navigator.of(context).push<ll.LatLng>(
+                      MaterialPageRoute(builder: (_) => OfficeLocationPicker(initial: point)),
+                    );
+                    if (picked != null) setDialogState(() => point = picked);
+                  },
+                  icon: const Icon(Icons.map_outlined),
+                  label: Text(t.pickOnMapButton),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  point == null
+                      ? t.noLocationPickedHint
+                      : '${point!.latitude.toStringAsFixed(6)}, ${point!.longitude.toStringAsFixed(6)}',
+                  style: TextStyle(
+                      color: point == null ? Colors.red : Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: radiusController,
+                  decoration: InputDecoration(labelText: t.radiusLabel),
+                  keyboardType: TextInputType.number,
+                ),
+              ],
+            ),
           ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(t.cancelButton)),
+            FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(t.saveButton)),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(t.cancelButton)),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(t.saveButton)),
-        ],
       ),
     );
     if (confirmed != true) return;
-    final lat = double.tryParse(latController.text);
-    final lng = double.tryParse(lngController.text);
     final radius = int.tryParse(radiusController.text);
-    if (nameController.text.trim().isEmpty || lat == null || lng == null || radius == null) return;
+    if (nameController.text.trim().isEmpty || point == null || radius == null) return;
 
     final payload = {
       'name': nameController.text.trim(),
-      'latitude': lat,
-      'longitude': lng,
+      'latitude': point!.latitude,
+      'longitude': point!.longitude,
       'radius_meters': radius,
     };
     try {
