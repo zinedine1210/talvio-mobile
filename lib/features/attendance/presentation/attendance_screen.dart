@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/error_translator.dart';
 import '../../../core/geo.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../company/providers/company_providers.dart';
 import '../../employee/providers/employee_providers.dart';
 import '../attendance_status.dart';
 import '../providers/attendance_providers.dart';
@@ -91,8 +92,39 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// True if the user cancelled out of the "clock out early?" confirm.
+  Future<bool> _confirmedEarlyClockOut(AppLocalizations t) async {
+    final company = await ref.read(companyMeProvider.future);
+    final workEnd = company['work_end_time']?.toString();
+    if (workEnd == null || workEnd.isEmpty) return true;
+    final parts = workEnd.split(':');
+    final h = int.tryParse(parts.elementAtOrNull(0) ?? '');
+    final m = int.tryParse(parts.elementAtOrNull(1) ?? '');
+    if (h == null || m == null) return true;
+    final now = DateTime.now();
+    final end = DateTime(now.year, now.month, now.day, h, m);
+    if (!now.isBefore(end)) return true; // already at/past end time, no need to ask
+
+    if (!mounted) return false;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(t.earlyClockOutTitle),
+        content: Text(t.earlyClockOutMessage(workEnd)),
+        actions: [
+          TextButton(onPressed: () => context.pop(false), child: Text(t.cancelButton)),
+          FilledButton(onPressed: () => context.pop(true), child: Text(t.yesClockOutButton)),
+        ],
+      ),
+    );
+    return confirmed == true;
+  }
+
   Future<void> _handleAction(AttendanceAction action) async {
     final t = AppLocalizations.of(context)!;
+    if (action == AttendanceAction.clockOut) {
+      if (!await _confirmedEarlyClockOut(t)) return;
+    }
     setState(() => _isProcessing = true);
     try {
       final position = await _getCurrentPosition(t);
@@ -192,13 +224,43 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final attendanceAsync = ref.watch(myAttendanceProvider);
+    final now = DateTime.now();
+    final hh = now.hour.toString().padLeft(2, '0');
+    final mm = now.minute.toString().padLeft(2, '0');
 
     return Scaffold(
-      appBar: AppBar(title: Text(t.attendanceTitle)),
+      appBar: AppBar(
+        title: Text(t.attendanceTitle),
+        actions: [
+          TextButton(
+            onPressed: () => context.push('/attendance/report'),
+            child: Text(t.historyLabel),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            DecoratedBox(
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('$hh:$mm',
+                        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: Color(0xFF134E4A))),
+                    const SizedBox(height: 4),
+                    Text(_formatToday(now),
+                        style: const TextStyle(color: Color(0xFF475569), fontSize: 13)),
+                    const SizedBox(height: 12),
+                    const _RadiusPill(),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             const LiveLocationMap(),
             const SizedBox(height: 20),
             attendanceAsync.when(
@@ -207,20 +269,21 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               data: (records) {
                 final action = determineAttendanceAction(records, todayDateString());
                 if (action == AttendanceAction.done) {
-                  return Card(
-                    color: Theme.of(context).colorScheme.tertiaryContainer,
+                  return DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCCFBF1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
-                          Icon(Icons.check_circle_outline,
-                              color: Theme.of(context).colorScheme.onTertiaryContainer),
+                          const Icon(Icons.check_circle_outline, color: Color(0xFF0D9488)),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               t.alreadyClockedTodayMessage,
-                              style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onTertiaryContainer),
+                              style: const TextStyle(color: Color(0xFF134E4A)),
                             ),
                           ),
                         ],
@@ -228,16 +291,65 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                     ),
                   );
                 }
-                final isClockIn = action == AttendanceAction.clockIn;
-                return FilledButton(
-                  onPressed: _isProcessing ? null : () => _handleAction(action),
-                  child: _isProcessing
-                      ? const SizedBox(
-                          height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                      : Text(isClockIn ? t.clockInButton : t.clockOutButton),
+                return Column(
+                  children: [
+                    InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: _isProcessing ? null : () => _handleAction(action),
+                      child: Container(
+                        width: 84,
+                        height: 84,
+                        decoration: const BoxDecoration(color: Color(0xFFEA580C), shape: BoxShape.circle),
+                        child: _isProcessing
+                            ? const Padding(
+                                padding: EdgeInsets.all(28),
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.fingerprint, color: Colors.white, size: 36),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(t.tapToAttendHint,
+                        style: const TextStyle(color: Color(0xFF475569), fontSize: 13)),
+                  ],
                 );
               },
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static const _days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+  static const _months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  ];
+  static String _formatToday(DateTime d) =>
+      '${_days[d.weekday - 1]}, ${d.day} ${_months[d.month - 1]} ${d.year}';
+}
+
+/// Pill status sederhana (dalam/luar radius) di bawah jam — status
+/// terperinci (jarak, map) tetap di [LiveLocationMap] di bawahnya; pill ini
+/// cuma ringkasan cepat sesuai figma "05 Absensi".
+class _RadiusPill extends ConsumerWidget {
+  const _RadiusPill();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context)!;
+    return DecoratedBox(
+      decoration: BoxDecoration(color: const Color(0xFFCCFBF1), borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check_circle, size: 14, color: Color(0xFF0D9488)),
+            const SizedBox(width: 6),
+            Text(t.withinRadiusPillLabel,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0D9488))),
           ],
         ),
       ),
