@@ -43,7 +43,6 @@
 - [Struktur Proyek](#struktur-proyek)
 - [Menjalankan Secara Lokal](#menjalankan-secara-lokal)
 - [Progress](#progress)
-- [Dokumentasi UML](#dokumentasi-uml)
 - [Tim Pengembang](#tim-pengembang)
 
 ## Kenapa Talvio
@@ -65,7 +64,7 @@ Semua alur lain (izin, lembur, koreksi, payroll) mengikuti satu aturan yang sama
 | 📢 **Pengumuman** | Broadcast ke seluruh perusahaan atau satu departemen |
 | 🔔 **Notifikasi** | Item yang butuh approval tampil sebagai badge, bukan menu yang numpuk di beranda |
 
-## Design Sementara Aplikasi Talvio
+## Tampilan Aplikasi
 
 <div align="center">
 
@@ -209,24 +208,15 @@ flutter run --dart-define=API_BASE_URL=http://<ip-backend>:8081
 | Fase | Cakupan | Status |
 |---|---|:---:|
 | 0 | Registrasi perusahaan + onboarding | ✅ |
-| 1 | Manajemen karyawan & departemen | - |
-| 2 | Absensi + geofencing + face liveness/matching | - |
-| 3 | Izin/cuti + approval routing | - |
-| 4 | Koreksi absensi + lembur | - |
-| 5 | Laporan absensi & cuti | - |
-| 6 | Payroll | - |
-| 7 | Pengumuman, dashboard, notifikasi in-app | - |
+| 1 | Manajemen karyawan & departemen | ✅ |
+| 2 | Absensi + geofencing + face liveness/matching | ✅ |
+| 3 | Izin/cuti + approval routing | ✅ |
+| 4 | Koreksi absensi + lembur | ✅ |
+| 5 | Laporan absensi & cuti | ✅ |
+| 6 | Payroll | ✅ |
+| 7 | Pengumuman, dashboard, notifikasi in-app | ✅ |
 
-- Detail lengkap tiap kebutuhan fungsional/non-fungsional: lihat [`SRS.md`](./SRS.md).
-
-## Dokumentasi UML
-
-Tugas Rekayasa Perangkat Lunak, dibuat berdasarkan sistem Talvio yang sebenarnya (bukan contoh generik).
-
-- [x] [Use Case Diagram](https://app.diagrams.net/#G1QBJ3MdgNIFTdu57USKDvqCQ35i_suv76#%7B%22pageId%22%3A%224o1dcDgJ-3b9LBgPc4fq%22%7D)
-- [x] [Activity Diagram](https://app.diagrams.net/#G1QBJ3MdgNIFTdu57USKDvqCQ35i_suv76#%7B%22pageId%22%3A%22XAgKsTMK8KjJrySv46gA%22%7D)
-- [x] [Sequence Diagram](https://app.diagrams.net/#G1QBJ3MdgNIFTdu57USKDvqCQ35i_suv76#%7B%22pageId%22%3A%22wB4YMA15K5CTAmcyD7ON%22%7D)
-- [x] [State Machine Diagram](https://app.diagrams.net/#G1QBJ3MdgNIFTdu57USKDvqCQ35i_suv76#%7B%22pageId%22%3A%22R7q-0g-hF_k4aSSOZzgw%22%7D)
+Detail lengkap tiap kebutuhan fungsional/non-fungsional: lihat [`SRS.md`](./SRS.md).
 
 ## Tim Pengembang
 
