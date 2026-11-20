@@ -19,6 +19,14 @@ class LeaveApi {
     return res.data as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> uploadAttachment(int requestId, List<int> fileBytes, String filename) async {
+    final formData = FormData.fromMap({
+      'attachment': MultipartFile.fromBytes(fileBytes, filename: filename),
+    });
+    final res = await _dio.post('/leave-requests/$requestId/attachment', data: formData);
+    return res.data as Map<String, dynamic>;
+  }
+
   Future<List<Map<String, dynamic>>> getMyLeaveRequests() async {
     final res = await _dio.get('/leave-requests/me');
     return (res.data as List).cast<Map<String, dynamic>>();

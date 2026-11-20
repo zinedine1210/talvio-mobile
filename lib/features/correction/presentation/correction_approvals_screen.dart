@@ -14,6 +14,21 @@ import '../providers/correction_providers.dart';
 class CorrectionApprovalsScreen extends ConsumerWidget {
   const CorrectionApprovalsScreen({super.key});
 
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context)!;
+    return Scaffold(
+      appBar: AppBar(title: Text(t.correctionApprovalsTitle)),
+      body: const CorrectionApprovalsList(),
+    );
+  }
+}
+
+/// Just the list — extracted so the HR "Persetujuan" tab hub (figma: 2 tabs,
+/// Menunggu/Koreksi) can embed it without a second nested AppBar.
+class CorrectionApprovalsList extends ConsumerWidget {
+  const CorrectionApprovalsList({super.key});
+
   String _fieldLabel(AppLocalizations t, String? field) => switch (field) {
         'clock_in' => t.correctionFieldClockIn,
         'clock_out' => t.correctionFieldClockOut,
@@ -44,9 +59,7 @@ class CorrectionApprovalsScreen extends ConsumerWidget {
     final pendingAsync = ref.watch(pendingCorrectionsProvider);
     final employeesAsync = ref.watch(employeeListProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(t.correctionApprovalsTitle)),
-      body: pendingAsync.when(
+    return pendingAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(translateError(context, e))),
         data: (corrections) {
@@ -124,7 +137,6 @@ class CorrectionApprovalsScreen extends ConsumerWidget {
             ),
           );
         },
-      ),
-    );
+      );
   }
 }

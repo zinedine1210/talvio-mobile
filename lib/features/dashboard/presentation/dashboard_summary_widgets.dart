@@ -56,7 +56,10 @@ class TodayAttendanceCard extends ConsumerWidget {
                   const SizedBox(height: 12),
                   if (clockOutAt == null)
                     FilledButton(
-                      onPressed: () => context.push('/attendance'),
+                      // '/attendance' jadi bottom-nav tab sekarang — pakai
+                      // go() buat pindah tab, bukan push() yang numpuk shell
+                      // baru di atas shell yang ada.
+                      onPressed: () => context.go('/attendance'),
                       child: Text(clockInAt == null ? t.clockInButton : t.clockOutButton),
                     )
                   else

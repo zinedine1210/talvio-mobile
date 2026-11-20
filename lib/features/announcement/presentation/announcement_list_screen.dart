@@ -43,21 +43,51 @@ class AnnouncementListScreen extends ConsumerWidget {
               separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
                 final a = announcements[i];
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(a['title']?.toString() ?? '-',
-                            style: const TextStyle(fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 4),
-                        Text(formatDateTimeLong(DateTime.parse(a['created_at'].toString())),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                        const SizedBox(height: 8),
-                        Text(a['body']?.toString() ?? ''),
-                      ],
+                final created = DateTime.tryParse(a['created_at']?.toString() ?? '');
+                return InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => context.push('/announcements/detail', extra: a),
+                  child: DecoratedBox(
+                    decoration:
+                        BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: const BoxDecoration(
+                                color: Color(0xFFCCFBF1), shape: BoxShape.circle),
+                            child: const Icon(Icons.campaign_outlined,
+                                color: Color(0xFF0D9488), size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(a['title']?.toString() ?? '-',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w700, color: Color(0xFF134E4A))),
+                                const SizedBox(height: 4),
+                                Text(
+                                  a['body']?.toString() ?? '',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Color(0xFF475569), fontSize: 13),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  created != null ? formatRelativeTime(created) : '',
+                                  style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );

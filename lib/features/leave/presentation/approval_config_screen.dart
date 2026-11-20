@@ -10,11 +10,17 @@ import '../providers/leave_providers.dart';
 /// HR-only: who approves each request type for this company — a direct
 /// supervisor, a named delegate, or HR itself. See SPEC.md's approval
 /// resolver.
-class ApprovalConfigScreen extends ConsumerStatefulWidget {
+class ApprovalConfigScreen extends ConsumerWidget {
   const ApprovalConfigScreen({super.key});
 
   @override
-  ConsumerState<ApprovalConfigScreen> createState() => _ApprovalConfigScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context)!;
+    return Scaffold(
+      appBar: AppBar(title: Text(t.approvalConfigTitle)),
+      body: const ApprovalConfigForm(),
+    );
+  }
 }
 
 class _TypeConfig {
@@ -22,7 +28,17 @@ class _TypeConfig {
   int? delegateId;
 }
 
-class _ApprovalConfigScreenState extends ConsumerState<ApprovalConfigScreen> {
+/// Just the form — extracted so the HR "Master organisasi" hub (figma: 2
+/// tabs, Departemen/Approval routing) can embed it without a second nested
+/// AppBar.
+class ApprovalConfigForm extends ConsumerStatefulWidget {
+  const ApprovalConfigForm({super.key});
+
+  @override
+  ConsumerState<ApprovalConfigForm> createState() => _ApprovalConfigFormState();
+}
+
+class _ApprovalConfigFormState extends ConsumerState<ApprovalConfigForm> {
   final _configs = {
     'leave': _TypeConfig(),
     'wfh_review': _TypeConfig(),
@@ -133,42 +149,39 @@ class _ApprovalConfigScreenState extends ConsumerState<ApprovalConfigScreen> {
     final configsAsync = ref.watch(approvalConfigsProvider);
     final employeesAsync = ref.watch(employeeListProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(t.approvalConfigTitle)),
-      body: configsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(translateError(context, e))),
-        data: (configs) {
-          _applyExisting(configs);
-          return employeesAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text(translateError(context, e))),
-            data: (employees) => SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _section(Icons.beach_access_outlined, t.approvalConfigLeaveLabel,
-                      _configs['leave']!, employees),
-                  const SizedBox(height: 16),
-                  _section(Icons.location_off_outlined, t.approvalConfigWfhReviewLabel,
-                      _configs['wfh_review']!, employees),
-                  const SizedBox(height: 16),
-                  _section(Icons.schedule_outlined, t.approvalConfigOvertimeLabel,
-                      _configs['overtime']!, employees),
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: _isSaving ? null : () => _save(configs),
-                    child: _isSaving
-                        ? const SizedBox(
-                            height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : Text(t.saveButton),
-                  ),
-                ],
-              ),
+    return configsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text(translateError(context, e))),
+      data: (configs) {
+        _applyExisting(configs);
+        return employeesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text(translateError(context, e))),
+          data: (employees) => SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _section(Icons.beach_access_outlined, t.approvalConfigLeaveLabel,
+                    _configs['leave']!, employees),
+                const SizedBox(height: 16),
+                _section(Icons.location_off_outlined, t.approvalConfigWfhReviewLabel,
+                    _configs['wfh_review']!, employees),
+                const SizedBox(height: 16),
+                _section(Icons.schedule_outlined, t.approvalConfigOvertimeLabel,
+                    _configs['overtime']!, employees),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: _isSaving ? null : () => _save(configs),
+                  child: _isSaving
+                      ? const SizedBox(
+                          height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : Text(t.saveButton),
+                ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
