@@ -2,14 +2,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../providers/onboarding_providers.dart';
+import 'package:latlong2/latlong.dart' as ll;
 
-class _LocationEntry {
-  final nameController = TextEditingController();
-  final latController = TextEditingController();
-  final lngController = TextEditingController();
-  final radiusController = TextEditingController(text: '100');
-}
+import '../../../core/error_translator.dart';
+import '../../../l10n/app_localizations.dart';
+import '../providers/onboarding_providers.dart';
+import 'office_location_picker.dart';
 
 class OnboardingWizardScreen extends ConsumerStatefulWidget {
   const OnboardingWizardScreen({super.key});
@@ -22,15 +20,23 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
   int _currentStep = 0;
   bool _isSubmitting = false;
 
-  final List<_LocationEntry> _locations = [_LocationEntry()];
+  final _addressController = TextEditingController(text: 'Jl. Sudirman No. 1, Jakarta');
+  final _radiusController = TextEditingController(text: '100');
+  ll.LatLng? _officePoint;
 
-  TimeOfDay _workStart = const TimeOfDay(hour: 7, minute: 0);
-  TimeOfDay _workEnd = const TimeOfDay(hour: 16, minute: 0);
+  TimeOfDay _workStart = const TimeOfDay(hour: 8, minute: 0);
+  TimeOfDay _workEnd = const TimeOfDay(hour: 17, minute: 0);
   final _lateToleranceController = TextEditingController(text: '15');
+  // ISO weekday: 1=Senin ... 7=Minggu. Default Senin-Jumat, cocok konvensi
+  // kerja kantoran umum; HR bisa ubah sebelum lanjut.
+  final Set<int> _workDays = {1, 2, 3, 4, 5};
+
   final _leaveQuotaController = TextEditingController(text: '12');
+  final _sickLeaveQuotaController = TextEditingController(text: '12');
   final _overtimeRateController = TextEditingController(text: '1.5');
-  final _cutoffDayController = TextEditingController(text: '20');
-  final _payDayController = TextEditingController(text: '25');
+
+  final _cutoffDayController = TextEditingController(text: '25');
+  final _payDayController = TextEditingController(text: '1');
 
   String _formatTime(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
@@ -44,27 +50,35 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
     setState(() => isStart ? _workStart = picked : _workEnd = picked);
   }
 
-  bool get _locationsValid => _locations.every((l) =>
-      l.nameController.text.trim().isNotEmpty &&
-      double.tryParse(l.latController.text) != null &&
-      double.tryParse(l.lngController.text) != null &&
-      int.tryParse(l.radiusController.text) != null);
+  Future<void> _pickOnMap() async {
+    final result = await Navigator.of(context).push<ll.LatLng>(
+      MaterialPageRoute(builder: (_) => OfficeLocationPicker(initial: _officePoint)),
+    );
+    if (result != null) setState(() => _officePoint = result);
+  }
+
+  bool get _locationValid =>
+      _addressController.text.trim().isNotEmpty &&
+      _officePoint != null &&
+      int.tryParse(_radiusController.text) != null;
 
   Future<void> _submit() async {
     setState(() => _isSubmitting = true);
     final payload = {
-      'locations': _locations
-          .map((l) => {
-                'name': l.nameController.text.trim(),
-                'latitude': double.parse(l.latController.text),
-                'longitude': double.parse(l.lngController.text),
-                'radius_meters': int.parse(l.radiusController.text),
-              })
-          .toList(),
+      'locations': [
+        {
+          'name': _addressController.text.trim(),
+          'latitude': _officePoint!.latitude,
+          'longitude': _officePoint!.longitude,
+          'radius_meters': int.parse(_radiusController.text),
+        }
+      ],
       'work_start_time': _formatTime(_workStart),
       'work_end_time': _formatTime(_workEnd),
       'late_tolerance_minutes': int.parse(_lateToleranceController.text),
+      'work_days': (_workDays.toList()..sort()),
       'default_leave_quota': int.parse(_leaveQuotaController.text),
+      'default_sick_leave_quota': int.parse(_sickLeaveQuotaController.text),
       'overtime_rate_multiplier': double.parse(_overtimeRateController.text),
       'payroll_cutoff_day': int.parse(_cutoffDayController.text),
       'payroll_pay_day': int.parse(_payDayController.text),
@@ -74,11 +88,9 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
       if (!mounted) return;
       context.go('/home');
     } on DioException catch (e) {
-      final message = e.response?.data is Map
-          ? (e.response?.data['message'] ?? 'Gagal menyimpan onboarding')
-          : 'Gagal menyimpan onboarding, cek koneksi ke server';
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message.toString())));
+      final message = translateError(context, e);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -86,155 +98,437 @@ class _OnboardingWizardScreenState extends ConsumerState<OnboardingWizardScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    const dayLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
     final steps = [
-      Step(
-        title: const Text('Lokasi Kantor'),
-        isActive: _currentStep >= 0,
+      (
+        title: t.officeLocationStep,
+        subtitle: t.officeLocationSubtitle,
         content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (var i = 0; i < _locations.length; i++)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(child: Text('Lokasi ${i + 1}', style: const TextStyle(fontWeight: FontWeight.bold))),
-                        if (_locations.length > 1)
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () => setState(() => _locations.removeAt(i)),
-                          ),
-                      ],
-                    ),
-                    TextField(
-                      controller: _locations[i].nameController,
-                      decoration: const InputDecoration(labelText: 'Nama Lokasi (mis. Kantor Pusat)'),
-                    ),
-                    TextField(
-                      controller: _locations[i].latController,
-                      decoration: const InputDecoration(labelText: 'Latitude'),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                    ),
-                    TextField(
-                      controller: _locations[i].lngController,
-                      decoration: const InputDecoration(labelText: 'Longitude'),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                    ),
-                    TextField(
-                      controller: _locations[i].radiusController,
-                      decoration: const InputDecoration(labelText: 'Radius (meter)'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ],
-                ),
+            _MapCard(onTap: _pickOnMap),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _addressController,
+              decoration: InputDecoration(
+                labelText: t.officeAddressLabel,
+                prefixIcon: const Icon(Icons.location_on_outlined),
               ),
-            TextButton.icon(
-              onPressed: () => setState(() => _locations.add(_LocationEntry())),
-              icon: const Icon(Icons.add),
-              label: const Text('Tambah Lokasi'),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _radiusController,
+              decoration: InputDecoration(labelText: t.radiusLabel),
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
             ),
           ],
         ),
       ),
-      Step(
-        title: const Text('Jam Kerja'),
-        isActive: _currentStep >= 1,
+      (
+        title: t.workHoursStep,
+        subtitle: t.workHoursSubtitle,
         content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ListTile(
-              title: const Text('Jam Masuk'),
-              trailing: Text(_formatTime(_workStart)),
-              onTap: () => _pickTime(true),
+            Row(
+              children: [
+                Expanded(
+                  child: _TimeField(
+                    label: t.clockInTimeLabel,
+                    value: _formatTime(_workStart),
+                    onTap: () => _pickTime(true),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _TimeField(
+                    label: t.clockOutTimeLabel,
+                    value: _formatTime(_workEnd),
+                    onTap: () => _pickTime(false),
+                  ),
+                ),
+              ],
             ),
-            ListTile(
-              title: const Text('Jam Pulang'),
-              trailing: Text(_formatTime(_workEnd)),
-              onTap: () => _pickTime(false),
-            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _lateToleranceController,
-              decoration: const InputDecoration(labelText: 'Toleransi Telat (menit)'),
+              decoration: InputDecoration(labelText: t.lateToleranceLabel),
               keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 12),
+            Text(t.workDaysLabel, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                for (var i = 0; i < 7; i++)
+                  _DayCircle(
+                    label: dayLabels[i][0],
+                    selected: _workDays.contains(i + 1),
+                    onTap: () => setState(() {
+                      if (_workDays.contains(i + 1)) {
+                        _workDays.remove(i + 1);
+                      } else {
+                        _workDays.add(i + 1);
+                      }
+                    }),
+                  ),
+              ],
             ),
           ],
         ),
       ),
-      Step(
-        title: const Text('Kebijakan Cuti & Lembur'),
-        isActive: _currentStep >= 2,
+      (
+        title: t.leaveOvertimePolicyStep,
+        subtitle: t.leaveOvertimePolicySubtitle,
         content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
               controller: _leaveQuotaController,
-              decoration: const InputDecoration(labelText: 'Kuota Cuti Default (hari/tahun)'),
+              decoration: InputDecoration(labelText: t.defaultLeaveQuotaLabel),
               keyboardType: TextInputType.number,
             ),
+            const SizedBox(height: 12),
             TextField(
-              controller: _overtimeRateController,
-              decoration: const InputDecoration(labelText: 'Rate Lembur (pengali gaji/jam)'),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              controller: _sickLeaveQuotaController,
+              decoration: InputDecoration(labelText: t.sickLeaveQuotaLabel),
+              keyboardType: TextInputType.number,
             ),
+            const SizedBox(height: 16),
+            _InfoCard(text: t.leaveQuotaInfoCard),
           ],
         ),
       ),
-      Step(
-        title: const Text('Payroll'),
-        isActive: _currentStep >= 3,
+      (
+        title: t.payrollStep,
+        subtitle: t.payrollStepSubtitle,
         content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
               controller: _cutoffDayController,
-              decoration: const InputDecoration(labelText: 'Tanggal Cutoff (1-28)'),
+              decoration: InputDecoration(
+                labelText: t.payrollCutoffLabel,
+                prefixIcon: const Icon(Icons.event_outlined),
+              ),
               keyboardType: TextInputType.number,
             ),
-            TextField(
-              controller: _payDayController,
-              decoration: const InputDecoration(labelText: 'Tanggal Gajian (1-28)'),
-              keyboardType: TextInputType.number,
+            const SizedBox(height: 12),
+            // Pilihan jalur approval cuma tampilan dulu — belum ada field
+            // approval-route di payload onboarding backend.
+            InputDecorator(
+              decoration: InputDecoration(labelText: t.approvalDefaultLabel),
+              child: Row(
+                children: [
+                  Expanded(child: Text(t.approvalDefaultValue)),
+                  const Icon(Icons.keyboard_arrow_down, size: 20),
+                ],
+              ),
             ),
+            const SizedBox(height: 16),
+            _SummaryCard(text: t.workspaceReadySummary),
           ],
         ),
       ),
     ];
 
+    void onContinue() {
+      if (_currentStep == 0 && !_locationValid) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(t.completeLocationDataWarning)));
+        return;
+      }
+      if (_currentStep < steps.length - 1) {
+        setState(() => _currentStep += 1);
+      } else if (!_isSubmitting) {
+        _submit();
+      }
+    }
+
+    // Hand-rolled step navigation instead of Stepper — Stepper + Material 3
+    // crashes ("RenderBox was not laid out") on this Flutter version, a
+    // known upstream framework issue, not something fixable from app code.
     return Scaffold(
-      appBar: AppBar(title: const Text('Setup Awal Perusahaan')),
-      body: Stepper(
-        currentStep: _currentStep,
-        steps: steps,
-        onStepContinue: () {
-          if (_currentStep == 0 && !_locationsValid) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Lengkapi data lokasi dengan benar')));
-            return;
-          }
-          if (_currentStep < steps.length - 1) {
-            setState(() => _currentStep += 1);
-          } else if (!_isSubmitting) {
-            _submit();
-          }
-        },
-        onStepCancel: _currentStep == 0 ? null : () => setState(() => _currentStep -= 1),
-        controlsBuilder: (context, details) => Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: Row(
-            children: [
-              FilledButton(
-                onPressed: _isSubmitting ? null : details.onStepContinue,
-                child: _isSubmitting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(_currentStep == steps.length - 1 ? 'Selesai' : 'Lanjut'),
+      appBar: AppBar(
+        title: Text(t.companySetupTitle),
+        actions: [
+          TextButton(
+            // Admin bisa lengkapi setup ini belakangan lewat Pengaturan
+            // Perusahaan — skip tidak mengirim apa pun ke backend.
+            onPressed: () => context.go('/home'),
+            child: Text(t.skipLabel),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Row(
+              children: [
+                for (var i = 0; i < steps.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 8),
+                  Expanded(
+                    child: Container(
+                      height: 6,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(3),
+                        color: i <= _currentStep
+                            ? const Color(0xFF0D9488)
+                            : const Color(0xFF99F6E4),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(steps[_currentStep].title,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Text(
+                    steps[_currentStep].subtitle,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 16),
+                  steps[_currentStep].content,
+                ],
               ),
-              if (details.onStepCancel != null)
-                TextButton(onPressed: details.onStepCancel, child: const Text('Kembali')),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              children: [
+                if (_currentStep > 0) ...[
+                  // OutlinedButtonTheme sets minimumSize width: infinity too
+                  // — same bounded-width requirement as the FilledButton
+                  // below, so this also needs an Expanded ancestor.
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => setState(() => _currentStep -= 1),
+                      child: Text(t.backButton),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                // FilledButton's theme sets minimumSize width: infinity, so
+                // it needs a bounded-width ancestor here (Row alone won't
+                // give it one) — same crash class as the Stepper this
+                // replaced if left unwrapped.
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _isSubmitting ? null : onContinue,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(_currentStep == steps.length - 1 ? t.finishButton : t.continueButton),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MapCard extends StatelessWidget {
+  const _MapCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          height: 180,
+          color: const Color(0xFFE2E8F0),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                child: const Icon(Icons.location_on, color: Color(0xFFEA580C), size: 28),
+              ),
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          AppLocalizations.of(context)!.pickOnMapButton,
+                          style: const TextStyle(
+                            color: Color(0xFF0D9488),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right, size: 16, color: Color(0xFF0D9488)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TimeField extends StatelessWidget {
+  const _TimeField({required this.label, required this.value, required this.onTap});
+
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: const Icon(Icons.access_time),
+        ),
+        child: Text(value),
+      ),
+    );
+  }
+}
+
+class _DayCircle extends StatelessWidget {
+  const _DayCircle({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: selected ? const Color(0xFF0D9488) : Colors.white,
+          border: selected ? null : Border.all(color: const Color(0xFF99F6E4)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : const Color(0xFF475569),
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFCCFBF1),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.info_outline, color: Color(0xFF0D9488), size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(text, style: const TextStyle(color: Color(0xFF134E4A), fontSize: 13)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFCCFBF1),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(color: Color(0xFF0D9488), shape: BoxShape.circle),
+              child: const Icon(Icons.check, color: Colors.white, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                text,
+                style: const TextStyle(color: Color(0xFF134E4A), fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
         ),
       ),
     );

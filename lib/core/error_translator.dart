@@ -1,0 +1,110 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+
+import '../l10n/app_localizations.dart';
+
+/// Translates an API error (or a raw exception) into a localized,
+/// user-facing message. Backend errors are `{"code": "...", "message": "..."}`
+/// — `code` is looked up against known translations; an unrecognized code
+/// (including the backend's catch-all `INTERNAL_ERROR`) falls back to a
+/// generic localized message, NEVER the backend's raw English `message` —
+/// that text is for logs/debugging, not something an end user should see.
+String translateError(BuildContext context, Object error) {
+  final t = AppLocalizations.of(context)!;
+  if (error is DioException) {
+    final data = error.response?.data;
+    if (data is Map) {
+      final translated = _translateCode(t, data['code']?.toString());
+      if (translated != null) return translated;
+    }
+    if (error.response == null) return t.errorNetworkUnreachable;
+  }
+  return t.errorGeneric;
+}
+
+String? _translateCode(AppLocalizations t, String? code) {
+  switch (code) {
+    case 'VALIDATION_ERROR':
+      return t.errorValidation;
+    case 'PASSWORD_TOO_SHORT':
+      return t.errorPasswordTooShort;
+    case 'EMAIL_TAKEN':
+      return t.errorEmailTaken;
+    case 'INVALID_CREDENTIALS':
+      return t.errorInvalidCredentials;
+    case 'ACCOUNT_INACTIVE':
+      return t.errorAccountInactive;
+    case 'INVALID_REFRESH_TOKEN':
+      return t.errorInvalidRefreshToken;
+    case 'UNAUTHORIZED':
+      return t.errorUnauthorized;
+    case 'FORBIDDEN':
+      return t.errorForbidden;
+    case 'MISSING_SIGNATURE':
+      return t.errorMissingSignature;
+    case 'INVALID_SIGNATURE':
+      return t.errorInvalidSignature;
+    case 'SIGNATURE_EXPIRED':
+      return t.errorSignatureExpired;
+    case 'RATE_LIMITED':
+      return t.errorRateLimited;
+    case 'COMPANY_NOT_FOUND':
+      return t.errorCompanyNotFound;
+    case 'LOCATION_NOT_FOUND':
+      return t.errorLocationNotFound;
+    case 'DEPARTMENT_NOT_FOUND':
+      return t.errorDepartmentNotFound;
+    case 'EMPLOYEE_NOT_FOUND':
+      return t.errorEmployeeNotFound;
+    case 'INVALID_DEPARTMENT_REFERENCE':
+      return t.errorInvalidDepartmentReference;
+    case 'INVALID_SUPERVISOR_REFERENCE':
+      return t.errorInvalidSupervisorReference;
+    case 'INVALID_DATE_FORMAT':
+      return t.errorInvalidDateFormat;
+    case 'INTERNAL_ERROR':
+      return t.errorGeneric;
+    case 'ALREADY_CLOCKED_IN':
+      return t.errorAlreadyClockedIn;
+    case 'NOTE_REQUIRED_OUTSIDE_RADIUS':
+      return t.errorNoteRequiredOutsideRadius;
+    case 'NO_LOCATION_ASSIGNED':
+      return t.errorNoLocationAssigned;
+    case 'NO_OPEN_CLOCKIN':
+      return t.errorNoOpenClockin;
+    case 'LEAVE_REQUEST_NOT_FOUND':
+      return t.errorLeaveRequestNotFound;
+    case 'LEAVE_NOT_PENDING':
+      return t.errorLeaveNotPending;
+    case 'NO_HR_ADMIN':
+      return t.errorNoHrAdmin;
+    case 'INVALID_CORRECTION_FIELD':
+      return t.errorInvalidCorrectionField;
+    case 'CORRECTION_NOT_FOUND':
+      return t.errorCorrectionNotFound;
+    case 'CORRECTION_NOT_PENDING':
+      return t.errorCorrectionNotPending;
+    case 'INVALID_TIME_FORMAT':
+      return t.errorInvalidTimeFormat;
+    case 'OVERTIME_INVALID_RANGE':
+      return t.errorOvertimeInvalidRange;
+    case 'OVERTIME_ATTENDANCE_NOT_FOUND':
+      return t.errorOvertimeAttendanceNotFound;
+    case 'OVERTIME_CLOCKOUT_INSUFFICIENT':
+      return t.errorOvertimeClockOutInsufficient;
+    case 'OVERTIME_REQUEST_NOT_FOUND':
+      return t.errorOvertimeRequestNotFound;
+    case 'OVERTIME_NOT_PENDING':
+      return t.errorOvertimeNotPending;
+    case 'INVALID_SALARY_COMPONENT_TYPE':
+      return t.errorInvalidSalaryComponentType;
+    case 'INVALID_AMOUNT_TYPE':
+      return t.errorInvalidAmountType;
+    case 'SALARY_COMPONENT_NOT_FOUND':
+      return t.errorSalaryComponentNotFound;
+    case 'PAYROLL_RUN_NOT_FOUND':
+      return t.errorPayrollRunNotFound;
+    default:
+      return null;
+  }
+}

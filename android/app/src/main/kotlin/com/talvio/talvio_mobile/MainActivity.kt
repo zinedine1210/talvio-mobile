@@ -1,4 +1,4 @@
-package com.presensia.presensia_mobile
+package com.talvio.talvio_mobile
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.presensia.presensia_mobile"
+    namespace = "com.talvio.talvio_mobile"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.presensia.presensia_mobile"
+        applicationId = "com.talvio.talvio_mobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -35,10 +35,21 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // camera_android_camerax's androidx.camera transitive classes reference
+    // CallbackToFutureAdapter but don't pull this in themselves; without it
+    // javac fails reading jspecify annotations on camera-core's class files.
+    implementation("androidx.concurrent:concurrent-futures:1.2.0")
 }
