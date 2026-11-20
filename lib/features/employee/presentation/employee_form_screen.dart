@@ -28,6 +28,10 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late final _nameController =
       TextEditingController(text: widget.employee?['name']?.toString() ?? '');
+  late final _nikController =
+      TextEditingController(text: widget.employee?['nik']?.toString() ?? '');
+  late final _addressController =
+      TextEditingController(text: widget.employee?['address']?.toString() ?? '');
   late final _emailController =
       TextEditingController(text: widget.employee?['email']?.toString() ?? '');
   final _passwordController = TextEditingController();
@@ -48,6 +52,8 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
       ? DateTime.tryParse(widget.employee!['join_date'].toString())
       : null;
   late String? _photoUrl = widget.employee?['photo_url']?.toString();
+  Uint8List? _pendingPhotoBytes;
+  String? _pendingPhotoFilename;
   bool _isSaving = false;
   bool _isUploadingPhoto = false;
   bool _obscurePassword = true;
@@ -57,6 +63,8 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _nikController.dispose();
+    _addressController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _phoneController.dispose();
@@ -111,6 +119,18 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
       filename = picked.name;
     }
 
+    // Creating a new employee: there's no id to upload against yet, so just
+    // hold the picked bytes locally and upload them right after _submit()
+    // creates the employee, same as figma's add-employee flow showing a
+    // photo picker before the record exists.
+    if (!_isEditing) {
+      setState(() {
+        _pendingPhotoBytes = bytes;
+        _pendingPhotoFilename = filename;
+      });
+      return;
+    }
+
     setState(() => _isUploadingPhoto = true);
     try {
       final result = await ref
@@ -125,6 +145,11 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
       if (newUrl != null) await NetworkImage(newUrl).evict();
       if (!mounted) return;
       setState(() => _photoUrl = newUrl);
+      // The list screen and (if this is HR editing their own record) the
+      // "Profil Saya" screen both cache a stale photo_url otherwise — they
+      // only refetch on their own trigger, which this upload never causes.
+      ref.invalidate(employeeListProvider);
+      ref.invalidate(myProfileProvider);
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(t.photoUploadedMessage)));
     } on DioException catch (e) {
@@ -151,6 +176,8 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
     setState(() => _isSaving = true);
     final payload = {
       'name': _nameController.text.trim(),
+      'nik': _nikController.text.trim(),
+      'address': _addressController.text.trim(),
       'phone': _phoneController.text.trim(),
       'role': _role,
       'department_id': _departmentId,
@@ -169,7 +196,11 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
       if (_isEditing) {
         await api.updateEmployee(widget.employee!['id'] as int, payload);
       } else {
-        await api.createEmployee(payload);
+        final created = await api.createEmployee(payload);
+        if (_pendingPhotoBytes != null) {
+          await api.uploadPhoto(
+              created['id'] as int, _pendingPhotoBytes!, _pendingPhotoFilename!);
+        }
       }
       if (!mounted) return;
       context.pop();
@@ -228,39 +259,38 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
           key: _formKey,
           child: Column(
             children: [
-              if (_isEditing) ...[
-                Center(
-                  child: GestureDetector(
-                    onTap: _isUploadingPhoto ? null : _pickAndUploadPhoto,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CircleAvatar(
-                          radius: 48,
-                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                          backgroundImage:
-                              _photoUrl != null && _photoUrl!.isNotEmpty
-                                  ? NetworkImage(_photoUrl!)
-                                  : null,
-                          child: _photoUrl == null || _photoUrl!.isEmpty
-                              ? Icon(Icons.person,
-                                  size: 48,
-                                  color: Theme.of(context).colorScheme.onPrimaryContainer)
-                              : null,
-                        ),
-                        if (_isUploadingPhoto) const CircularProgressIndicator(),
-                      ],
-                    ),
+              Center(
+                child: GestureDetector(
+                  onTap: _isUploadingPhoto ? null : _pickAndUploadPhoto,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CircleAvatar(
+                        radius: 48,
+                        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                        backgroundImage: _pendingPhotoBytes != null
+                            ? MemoryImage(_pendingPhotoBytes!)
+                            : (_photoUrl != null && _photoUrl!.isNotEmpty
+                                ? NetworkImage(_photoUrl!)
+                                : null) as ImageProvider?,
+                        child: _pendingPhotoBytes == null && (_photoUrl == null || _photoUrl!.isEmpty)
+                            ? Icon(Icons.person,
+                                size: 48,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer)
+                            : null,
+                      ),
+                      if (_isUploadingPhoto) const CircularProgressIndicator(),
+                    ],
                   ),
                 ),
-                Center(
-                  child: TextButton(
-                    onPressed: _isUploadingPhoto ? null : _pickAndUploadPhoto,
-                    child: Text(t.profilePhotoLabel),
-                  ),
+              ),
+              Center(
+                child: TextButton(
+                  onPressed: _isUploadingPhoto ? null : _pickAndUploadPhoto,
+                  child: Text(t.profilePhotoLabel),
                 ),
-                const SizedBox(height: 8),
-              ],
+              ),
+              const SizedBox(height: 8),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -270,6 +300,18 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                         controller: _nameController,
                         decoration: InputDecoration(labelText: t.nameLabel),
                         validator: (v) => (v == null || v.trim().isEmpty) ? t.requiredField : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _nikController,
+                        decoration: InputDecoration(labelText: t.nikLabel),
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _addressController,
+                        decoration: InputDecoration(labelText: t.addressLabel),
+                        maxLines: 2,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
