@@ -39,7 +39,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(_wrap(const RegisterCompanyScreen()));
 
-    await tester.tap(find.text('Daftar'));
+    await tester.tap(find.text('Buat akun perusahaan'));
     await tester.pump();
 
     expect(find.text('Wajib diisi'), findsWidgets);
@@ -53,7 +53,7 @@ void main() {
     await tester.enterText(fields.at(1), 'Budi');
     await tester.enterText(fields.at(2), 'bukan-email');
     await tester.enterText(fields.at(3), '123456');
-    await tester.tap(find.text('Daftar'));
+    await tester.tap(find.text('Buat akun perusahaan'));
     await tester.pump();
 
     expect(find.text('Email tidak valid'), findsOneWidget);

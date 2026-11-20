@@ -3,17 +3,17 @@ import 'package:talvio_mobile/features/attendance/face_matching.dart';
 
 void main() {
   group('classifyDistance', () {
-    test('distance <= 0.5 is a match', () {
+    test('distance <= 0.8 is a match', () {
       expect(classifyDistance(0.0).status, FaceMatchStatus.match);
-      expect(classifyDistance(0.5).status, FaceMatchStatus.match);
+      expect(classifyDistance(0.8).status, FaceMatchStatus.match);
     });
 
-    test('0.5 < distance <= 0.9 is uncertain', () {
-      expect(classifyDistance(0.6).status, FaceMatchStatus.uncertain);
+    test('0.8 < distance <= 1.1 is uncertain', () {
       expect(classifyDistance(0.9).status, FaceMatchStatus.uncertain);
+      expect(classifyDistance(1.1).status, FaceMatchStatus.uncertain);
     });
 
-    test('distance > 0.9 is a mismatch', () {
+    test('distance > 1.1 is a mismatch', () {
       expect(classifyDistance(1.5).status, FaceMatchStatus.mismatch);
     });
   });
