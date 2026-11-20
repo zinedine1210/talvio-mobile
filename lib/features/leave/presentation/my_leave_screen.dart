@@ -78,7 +78,7 @@ class MyLeaveScreen extends ConsumerWidget {
                     title: Text(_typeLabel(t, r['type']?.toString()),
                         style: const TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: Text(
-                        '${formatDateLongFromString(r['start_date']?.toString())} — '
+                        '${formatDateLongFromString(r['start_date']?.toString())} - '
                         '${formatDateLongFromString(r['end_date']?.toString())}'),
                     trailing: Chip(
                       label: Text(_statusLabel(t, status)),
