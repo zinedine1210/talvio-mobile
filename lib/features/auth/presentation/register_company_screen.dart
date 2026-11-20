@@ -22,8 +22,10 @@ class _RegisterCompanyScreenState extends ConsumerState<RegisterCompanyScreen> {
   final _adminNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
@@ -31,6 +33,7 @@ class _RegisterCompanyScreenState extends ConsumerState<RegisterCompanyScreen> {
     _adminNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -60,6 +63,7 @@ class _RegisterCompanyScreenState extends ConsumerState<RegisterCompanyScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(t.registerCompanyTitle)),
       body: SafeArea(
@@ -68,75 +72,110 @@ class _RegisterCompanyScreenState extends ConsumerState<RegisterCompanyScreen> {
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      mainAxisSize: MainAxisSize.min,
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      t.registerCompanySubtitle,
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 24),
+                    TextFormField(
+                      controller: _companyNameController,
+                      decoration: InputDecoration(
+                        labelText: t.companyNameLabel,
+                        hintText: 'PT Nama Perusahaan',
+                        prefixIcon: const Icon(Icons.apartment_outlined),
+                      ),
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? t.requiredField : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _adminNameController,
+                      decoration: InputDecoration(
+                        labelText: t.adminNameLabel,
+                        hintText: 'Nama lengkap',
+                        prefixIcon: const Icon(Icons.person_outline),
+                      ),
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? t.requiredField : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: t.emailLabel,
+                        hintText: 'nama@perusahaan.com',
+                        prefixIcon: const Icon(Icons.mail_outline),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return t.requiredField;
+                        if (!_emailRegex.hasMatch(v.trim())) return t.invalidEmail;
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _passwordController,
+                      decoration: InputDecoration(
+                        labelText: t.passwordLabel,
+                        hintText: 'Minimal 8 karakter',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined),
+                          onPressed: () =>
+                              setState(() => _obscurePassword = !_obscurePassword),
+                        ),
+                      ),
+                      obscureText: _obscurePassword,
+                      validator: (v) => (v == null || v.length < 6) ? t.minLength6 : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _confirmPasswordController,
+                      decoration: InputDecoration(
+                        labelText: t.confirmPasswordLabel,
+                        hintText: 'Ulangi kata sandi',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscureConfirmPassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined),
+                          onPressed: () => setState(
+                              () => _obscureConfirmPassword = !_obscureConfirmPassword),
+                        ),
+                      ),
+                      obscureText: _obscureConfirmPassword,
+                      validator: (v) =>
+                          v != _passwordController.text ? t.passwordMismatch : null,
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: _isLoading ? null : _submit,
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(t.registerButton),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        TextFormField(
-                          controller: _companyNameController,
-                          decoration: InputDecoration(
-                            labelText: t.companyNameLabel,
-                            prefixIcon: const Icon(Icons.apartment_outlined),
-                          ),
-                          validator: (v) =>
-                              (v == null || v.trim().isEmpty) ? t.requiredField : null,
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _adminNameController,
-                          decoration: InputDecoration(
-                            labelText: t.adminNameLabel,
-                            prefixIcon: const Icon(Icons.person_outline),
-                          ),
-                          validator: (v) =>
-                              (v == null || v.trim().isEmpty) ? t.requiredField : null,
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _emailController,
-                          decoration: InputDecoration(
-                            labelText: t.emailLabel,
-                            prefixIcon: const Icon(Icons.mail_outline),
-                          ),
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) return t.requiredField;
-                            if (!_emailRegex.hasMatch(v.trim())) return t.invalidEmail;
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _passwordController,
-                          decoration: InputDecoration(
-                            labelText: t.passwordLabel,
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            suffixIcon: IconButton(
-                              icon: Icon(_obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined),
-                              onPressed: () =>
-                                  setState(() => _obscurePassword = !_obscurePassword),
-                            ),
-                          ),
-                          obscureText: _obscurePassword,
-                          validator: (v) => (v == null || v.length < 6) ? t.minLength6 : null,
-                        ),
-                        const SizedBox(height: 24),
-                        FilledButton(
-                          onPressed: _isLoading ? null : _submit,
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Text(t.registerButton),
+                        Text(
+                          t.alreadyHaveAccountText,
+                          style: theme.textTheme.bodyMedium
+                              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                         ),
                         TextButton(
                           onPressed: () => context.go('/login'),
@@ -144,7 +183,7 @@ class _RegisterCompanyScreenState extends ConsumerState<RegisterCompanyScreen> {
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),

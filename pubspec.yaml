@@ -80,6 +80,7 @@ flutter:
     # Placeholder — ganti file ini dengan logo asli (path/nama sama, tidak
     # perlu ubah kode) begitu logo final siap.
     - assets/images/logo.png
+    - assets/images/login_hero.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
