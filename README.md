@@ -26,7 +26,7 @@
 
 | 📱 File Dart | 🧩 Layar | 🧪 Test | 🔌 Endpoint API | 🗂️ Modul Backend |
 |:---:|:---:|:---:|:---:|:---:|
-| **86** | **46** | **36 passing** | **67** | **11** |
+| **89** | **43** | **36 passing** | **66** | **11** |
 
 </div>
 
@@ -37,11 +37,13 @@
 - [Tampilan Aplikasi](#tampilan-aplikasi)
 - [Arsitektur](#arsitektur)
 - [Role & Akses](#role--akses)
+- [Approval Routing](#approval-routing)
 - [Keamanan](#keamanan)
 - [Tech Stack](#tech-stack)
 - [Referensi API](#referensi-api)
 - [Struktur Proyek](#struktur-proyek)
 - [Menjalankan Secara Lokal](#menjalankan-secara-lokal)
+- [Testing](#testing)
 - [Progress](#progress)
 - [Dokumentasi UML](#dokumentasi-uml)
 - [Tim Pengembang](#tim-pengembang)
@@ -50,7 +52,7 @@
 
 Sebagian besar aplikasi presensi kantor cuma verifikasi lokasi, gampang dikelabui foto orang lain atau titip absen. Talvio menutup dua celah itu sekaligus: **geofencing** (harus dalam radius kantor) **+ face liveness dan face-matching yang jalan langsung di HP**, jadi tidak ada foto wajah karyawan yang keluar ke server pihak ketiga, sekaligus tetap murah dijalankan karena tidak butuh API cloud berbayar per verifikasi.
 
-Semua alur lain (izin, lembur, koreksi, payroll) mengikuti satu aturan yang sama: siapa yang berhak menyetujui apa diatur lewat konfigurasi per perusahaan (`approval_configs`), bukan di-hardcode di kode, kecuali koreksi absensi, yang sengaja selalu ke HR.
+Alur approval (izin, lembur, review absen di luar radius / wajah tidak cocok) mengikuti satu aturan yang sama: siapa yang berhak menyetujui diatur lewat konfigurasi per perusahaan (`approval_configs`), bukan di-hardcode di kode. Pengecualiannya koreksi absensi dan `missing_clockout`, yang sengaja selalu ke HR. Lihat [Approval Routing](#approval-routing).
 
 ## Fitur per Modul
 
@@ -69,9 +71,21 @@ Semua alur lain (izin, lembur, koreksi, payroll) mengikuti satu aturan yang sama
 
 <div align="center">
 
-| Home Karyawan | Absensi | Home HR | Laporan Absensi |
+**Karyawan**
+
+| Dashboard | Absensi | Verifikasi Wajah | Ajukan Permohonan |
 |:---:|:---:|:---:|:---:|
-| <img src="docs/screenshots/karyawan.jpeg" width="200"/> | <img src="docs/screenshots/absen.jpeg" width="200"/> | <img src="docs/screenshots/hr.jpeg" width="200"/> | <img src="docs/screenshots/laporan.jpeg" width="200"/> |
+| <img src="docs/screenshots/dashboard%20karyawan.jpeg" width="200"/> | <img src="docs/screenshots/absensi%20karyawan.jpeg" width="200"/> | <img src="docs/screenshots/absensi.jpeg" width="200"/> | <img src="docs/screenshots/ajukan%20permohonan.jpeg" width="200"/> |
+
+**HR Admin**
+
+| Dashboard | Persetujuan | Tambah Karyawan |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/dashboard%20hr.jpeg" width="200"/> | <img src="docs/screenshots/persetujuan%20hr.jpeg" width="200"/> | <img src="docs/screenshots/tambah%20karyawan.jpeg" width="200"/> |
+
+| Master Organisasi | Approval & Departemen | Pengaturan Perusahaan |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/master%20organisasi.jpeg" width="200"/> | <img src="docs/screenshots/approval%20and%20departemen%20setting.jpeg" width="200"/> | <img src="docs/screenshots/pengaturan%20perusahaan.jpeg" width="200"/> |
 
 </div>
 
@@ -82,6 +96,7 @@ graph TD
     Mobile["📱 talvio-mobile<br/>Flutter"] -- "HTTP + HMAC signature" --> API["🔧 talvio-backend<br/>Go + Gin"]
     API --> DB[("PostgreSQL")]
     API -- "upload lewat backend saja" --> Storage[("Supabase Storage")]
+    Mobile -. "baca foto profil<br/>(URL publik)" .-> Storage
     Mobile -. "face-match jalan di HP,<br/>tidak lewat API" .-> Mobile
 ```
 
@@ -96,31 +111,45 @@ sequenceDiagram
     participant D as PostgreSQL
 
     U->>M: Buka layar absen
-    M->>M: Cek GPS, dalam radius kantor?
+    M->>M: Cek GPS, di luar radius? wajib isi catatan
     M->>M: Liveness check (ML Kit, live di kamera)
     M->>M: Face-match vs foto profil (TFLite, on-device)
-    M->>B: POST /attendance/clock-in<br/>(JWT + HMAC signature + foto)
+    M->>B: POST /attendance/clock-in<br/>(JWT + HMAC signature + foto + skor face-match)
     B->>B: Verifikasi signature & company_id dari JWT
+    B->>D: Tutup absen kemarin yang belum clock-out<br/>(jadi missing_clockout), cek belum absen hari ini
+    B->>B: Hitung ulang radius (haversine, otoritatif)<br/>+ status terlambat
     B->>S: Upload foto absensi
     S-->>B: URL foto
+    opt Di luar radius / face-match uncertain atau mismatch
+        B->>D: Resolve approver (wfh_review)
+    end
     B->>D: Simpan attendance record<br/>(status: hadir / pending_review)
-    B-->>M: 200 OK
+    opt Status pending_review
+        B->>D: Notifikasi ke approver
+    end
+    B-->>M: 201 Created
     M-->>U: "Absen masuk berhasil"
 ```
 
 ### Siklus Status Absensi
 
-Status absensi mengikuti siklus berikut, sekali `hadir`/`rejected` tidak bisa berubah sendiri, hanya lewat review manual:
+Status absensi mengikuti siklus berikut. Perubahan otomatis hanya terjadi saat clock-out atau saat absen yang lewat hari dibuka lagi; selebihnya lewat review approver atau koreksi yang disetujui HR:
 
 ```mermaid
 stateDiagram-v2
     [*] --> hadir: clock-in dalam radius, wajah cocok
-    [*] --> pending_review: di luar radius / face-match tidak yakin
-    pending_review --> approved_wfh: HR setujui
-    pending_review --> rejected: HR tolak
-    hadir --> missing_clockout: tidak clock-out sampai tengah malam
-    missing_clockout --> [*]: diperbaiki lewat pengajuan koreksi
+    [*] --> pending_review: clock-in di luar radius / face-match uncertain atau mismatch
+    hadir --> pending_review: clock-out di luar radius / face-match uncertain atau mismatch
+    hadir --> missing_clockout: belum clock-out, terdeteksi hari berikutnya
+    pending_review --> approved_wfh: approver setujui
+    pending_review --> rejected: approver tolak
+    missing_clockout --> approved_wfh: HR setujui
+    missing_clockout --> rejected: HR tolak
+    pending_review --> hadir: koreksi disetujui HR
+    missing_clockout --> hadir: koreksi disetujui HR
 ```
+
+`missing_clockout` tidak dijalankan cron: dicek ulang tiap karyawan clock-in, clock-out, atau membuka daftar absensinya. Approver `pending_review` ditentukan resolver `wfh_review` (bisa supervisor), sedangkan `missing_clockout` selalu ke HR.
 
 > [!IMPORTANT]
 > Karyawan tidak pernah benar-benar terkunci dari absen. Kalau face-match gagal berkali-kali, sistem tetap menerima submit dan menandainya `pending_review` untuk ditinjau HR manual lewat foto yang tersimpan, tidak ada skenario karyawan asli gagal absen total karena sistem.
@@ -136,9 +165,28 @@ stateDiagram-v2
 | Kelola komponen gaji & jalankan payroll | ❌ | ✅ |
 | Tinjau koreksi absensi | ❌ | ✅ (satu-satunya, tidak bisa didelegasikan) |
 
+## Approval Routing
+
+HR mengatur approver per jenis pengajuan lewat `PUT /company/approval-configs`. Resolver yang sama dipakai semua jenis di bawah:
+
+| Jenis (`request_type`) | Dipakai untuk |
+|---|---|
+| `leave` | Izin, cuti, sakit |
+| `overtime` | Klaim lembur |
+| `wfh_review` | Absen `pending_review` (di luar radius / face-match uncertain atau mismatch) |
+
+| Mode | Approver | Fallback |
+|---|---|---|
+| `hr` (default kalau belum dikonfigurasi) | HR admin aktif mana pun | - |
+| `supervisor` | `supervisor_id` milik karyawan | HR admin kalau supervisor kosong |
+| `delegate` | Karyawan yang ditunjuk (`delegate_employee_id`) | HR admin kalau delegate kosong |
+
+Koreksi absensi dan `missing_clockout` tidak lewat resolver ini, selalu ke HR.
+
 ## Keamanan
 
 - Setiap request ke backend (kecuali `/health`) ditandatangani HMAC-SHA256, ditolak kalau timestamp meleset > 5 menit
+- Secret HMAC ikut ter-compile di aplikasi (`lib/core/api_signing.dart`), jadi fungsinya lapisan tambahan untuk menahan skrip/bot yang menembak API langsung, bukan rahasia sungguhan. Autentikasi yang sebenarnya tetap JWT dari login
 - `company_id` selalu diambil dari klaim JWT lewat middleware, tidak pernah dipercaya dari input client
 - Face-matching 100% on-device (TFLite/MobileFaceNet), foto wajah tidak pernah dikirim ke pihak ketiga
 - Rate limiting per-IP di endpoint register & login
@@ -156,7 +204,7 @@ stateDiagram-v2
 ## Referensi API
 
 <details>
-<summary><b>67 endpoint, dikelompokkan per modul (klik untuk buka)</b></summary>
+<summary><b>66 endpoint (di luar <code>/health</code>), dikelompokkan per modul (klik untuk buka)</b></summary>
 <br/>
 
 | Modul | Endpoint |
@@ -182,12 +230,13 @@ stateDiagram-v2
 lib/
   core/          # api client, router, tema, formatter, signing
   features/
-    auth/ onboarding/ employee/ attendance/
-    leave/ overtime/ correction/ approval/
-    payroll/ report/ announcement/ dashboard/
+    auth/ onboarding/ company/ employee/ attendance/
+    leave/ overtime/ correction/ payroll/
+    report/ announcement/ dashboard/
+    approval/ organization/ request/   # hub menu, presentation/ saja
   l10n/          # ID + EN
 ```
-Tiap feature: `data/` (model + panggilan API), `presentation/` (layar + widget), `providers/` (Riverpod).
+Feature umumnya: `data/` (model + panggilan API), `presentation/` (layar + widget), `providers/` (Riverpod). Pengecualian: `approval/`, `organization/`, `request/` cuma layar hub yang menggabungkan menu feature lain.
 
 ## Menjalankan Secara Lokal
 
@@ -203,6 +252,29 @@ flutter run --dart-define=API_BASE_URL=http://<ip-backend>:8081
 
 > [!TIP]
 > HP fisik lewat USB: `adb reverse tcp:8081 tcp:8081`, lalu pakai `API_BASE_URL=http://localhost:8081`. Emulator Android otomatis pakai `10.0.2.2` sebagai alias localhost, tidak perlu setting tambahan.
+
+> [!WARNING]
+> `apiSigningSecret` di `lib/core/api_signing.dart` harus sama persis dengan `API_SIGNING_SECRET` di `.env` backend. Kalau beda, semua request ditolak dengan error signature tidak valid.
+
+Aplikasi butuh izin **kamera** (liveness + foto absen) dan **lokasi** (geofencing). Tanpa keduanya, layar absen tidak bisa dipakai.
+
+Build APK untuk dibagikan (HP lain di WiFi yang sama dengan laptop backend):
+
+```bash
+flutter build apk --release --dart-define=API_BASE_URL=http://<ip-lan-laptop>:8081
+# hasil: build/app/outputs/flutter-apk/app-release.apk
+```
+
+URL backend ikut ter-compile, jadi APK harus di-build ulang kalau IP laptop berubah.
+
+## Testing
+
+```bash
+flutter analyze
+flutter test
+```
+
+36 test di `test/` menutup logika murni yang paling rawan salah: signing HMAC (`api_signing_test`), penentuan tombol clock-in/out (`attendance_status_test`), threshold face-match (`face_matching_test`), durasi cuti (`leave_duration_test`), formatter, dan penerjemah error API. CI menjalankan dua perintah di atas tiap push / PR ke `main`.
 
 ## Progress
 
@@ -244,6 +316,10 @@ Tugas Rekayasa Perangkat Lunak, dibuat berdasarkan sistem Talvio yang sebenarnya
 
 `Rekayasa Perangkat Lunak`, `Universitas Indraprasta PGRI`
 
+## Kredit
+
+Model `assets/models/mobilefacenet.tflite` diambil dari [MCarlomagno/FaceRecognitionAuth](https://github.com/MCarlomagno/FaceRecognitionAuth), lisensi BSD 3-Clause. Detail dan teks lisensi lengkap: [`assets/models/NOTICE.md`](./assets/models/NOTICE.md).
+
 ---
 
-<p align="center"><sub>Talvio, HRIS multi-tenant, dibangun bertahap Fase 0 s/d 7.</sub></p>
+<p align="center"><sub>Talvio, HRIS multi-tenant, dibangun bertahap Fase 0 s/d 7. Sekarang sudah fase 7</sub></p>
