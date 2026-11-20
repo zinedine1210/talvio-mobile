@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Design tokens — sumber dari riset ui-ux-pro-max untuk produk HRIS/B2B
-/// SaaS (palet teal+orange, flat design, Plus Jakarta Sans). Lihat
-/// `design-system/talvio/MASTER.md` untuk detail lengkap & alasannya.
+/// Design tokens — palet teal+orange, flat design, font Sora, sesuai
+/// desain figma `Talvio.figcraft`. Lihat `design-system/talvio/MASTER.md`
+/// untuk detail lengkap & alasannya.
 class AppColors {
   const AppColors._();
 
@@ -30,20 +30,20 @@ ThemeData buildTalvioTheme() {
     tertiary: AppColors.accent,
   );
   final radius = BorderRadius.circular(14);
-  final textTheme = GoogleFonts.plusJakartaSansTextTheme();
+  final textTheme = GoogleFonts.soraTextTheme();
 
   return ThemeData(
     useMaterial3: true,
     colorScheme: colorScheme,
     textTheme: textTheme,
-    scaffoldBackgroundColor: colorScheme.surface,
+    scaffoldBackgroundColor: AppColors.background,
     appBarTheme: AppBarTheme(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: Colors.white,
       foregroundColor: colorScheme.onSurface,
       elevation: 0,
       scrolledUnderElevation: 1,
       centerTitle: false,
-      titleTextStyle: GoogleFonts.plusJakartaSans(
+      titleTextStyle: GoogleFonts.sora(
         color: colorScheme.onSurface,
         fontSize: 20,
         fontWeight: FontWeight.w700,
@@ -58,27 +58,52 @@ ThemeData buildTalvioTheme() {
     listTileTheme: ListTileThemeData(shape: RoundedRectangleBorder(borderRadius: radius)),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: colorScheme.surfaceContainerHighest,
+      fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(borderRadius: radius, borderSide: BorderSide.none),
-      enabledBorder: OutlineInputBorder(borderRadius: radius, borderSide: BorderSide.none),
+      // Figma selalu nunjukin label kecil di atas field + hint di dalamnya
+      // bersamaan — default Material baru floating label setelah fokus/isi.
+      floatingLabelBehavior: FloatingLabelBehavior.always,
+      floatingLabelStyle: GoogleFonts.sora(
+        color: const Color(0xFF134E4A),
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: radius,
+        borderSide: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: radius,
+        borderSide: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
+      ),
       focusedBorder: OutlineInputBorder(
         borderRadius: radius,
-        borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
+        backgroundColor: AppColors.accent,
+        foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 52),
         shape: RoundedRectangleBorder(borderRadius: radius),
-        textStyle: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600),
+        textStyle: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w600),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.primaryDark,
+        minimumSize: const Size(double.infinity, 52),
+        side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
+        shape: RoundedRectangleBorder(borderRadius: radius),
+        textStyle: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w600),
       ),
     ),
     chipTheme: ChipThemeData(
       shape: const StadiumBorder(),
       side: BorderSide.none,
       backgroundColor: colorScheme.surfaceContainerHighest,
-      labelStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+      labelStyle: GoogleFonts.sora(fontWeight: FontWeight.w600),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: colorScheme.surface,
@@ -86,7 +111,7 @@ ThemeData buildTalvioTheme() {
       elevation: 0,
       height: 64,
       labelTextStyle: WidgetStateProperty.resolveWith(
-        (states) => GoogleFonts.plusJakartaSans(
+        (states) => GoogleFonts.sora(
           fontSize: 12,
           fontWeight: states.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500,
           color: states.contains(WidgetState.selected) ? colorScheme.primary : colorScheme.onSurfaceVariant,
