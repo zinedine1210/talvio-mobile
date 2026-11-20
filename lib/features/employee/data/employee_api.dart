@@ -27,6 +27,37 @@ class EmployeeApi {
     return res.data as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> updateMe({String? name, String? phone, String? address}) async {
+    final res = await _dio.patch('/employees/me', data: {
+      if (name != null) 'name': name,
+      if (phone != null) 'phone': phone,
+      if (address != null) 'address': address,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> uploadMyPhoto(List<int> photoBytes, String filename) async {
+    final formData = FormData.fromMap({
+      'photo': MultipartFile.fromBytes(photoBytes, filename: filename),
+    });
+    final res = await _dio.post('/employees/me/photo', data: formData);
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<void> changePassword({required String currentPassword, required String newPassword}) async {
+    await _dio.patch('/employees/me/password', data: {
+      'current_password': currentPassword,
+      'new_password': newPassword,
+    });
+  }
+
+  Future<void> updateNotificationPrefs({required bool notifyPush, required bool notifyEmail}) async {
+    await _dio.patch('/employees/me/notifications', data: {
+      'notify_push': notifyPush,
+      'notify_email': notifyEmail,
+    });
+  }
+
   Future<Map<String, dynamic>> createEmployee(Map<String, dynamic> payload) async {
     final res = await _dio.post('/employees', data: payload);
     return res.data as Map<String, dynamic>;
