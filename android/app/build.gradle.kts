@@ -46,3 +46,10 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // camera_android_camerax's androidx.camera transitive classes reference
+    // CallbackToFutureAdapter but don't pull this in themselves; without it
+    // javac fails reading jspecify annotations on camera-core's class files.
+    implementation("androidx.concurrent:concurrent-futures:1.2.0")
+}

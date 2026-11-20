@@ -21,6 +21,17 @@ const _detectionInterval = Duration(milliseconds: 350);
 /// rule (same cap the old post-capture retry dialog used).
 const _maxFaceMatchAttempts = 3;
 
+/// Max takePicture() hard-failure retries before giving up entirely and
+/// popping the screen. On some devices a single bad stream reconfigure
+/// ("Unsupported set of inputs/outputs provided") leaves the Camera2
+/// session permanently wedged — every further takePicture() in that same
+/// session fails too, so retrying in place would loop forever instead of
+/// ever reaching upload. A fresh CameraController (via _reinitializeCamera)
+/// gets a clean session; if that still doesn't help after a couple of
+/// tries, bailing out lets the user back out and re-enter the screen for a
+/// fully fresh start instead of being stuck silently.
+const _maxCaptureFailures = 2;
+
 /// Full-screen camera capture, used for attendance photos — deliberately
 /// camera-only (no gallery picker), since attendance photos must be a live
 /// capture, not a pre-existing image.
@@ -59,6 +70,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   Future<void>? _initFuture;
   bool _isCapturing = false;
   bool _isStreaming = false;
+  int _captureFailures = 0;
   bool _isDetecting = false;
   bool _liveFaceOk = false;
   DateTime? _lastDetectionAt;
@@ -90,7 +102,12 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     );
     final controller = CameraController(
       camera,
-      ResolutionPreset.medium,
+      // low, not medium: this screen runs Preview+ImageCapture+ImageAnalysis
+      // concurrently for the auto-capture liveness flow, and some devices'
+      // Camera2 HAL (LIMITED hardware level) reject that 3-stream combo at
+      // higher resolutions ("Unsupported set of inputs/outputs provided").
+      // Face detection/matching works fine at this resolution.
+      ResolutionPreset.low,
       enableAudio: false,
       imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
     );
@@ -109,6 +126,27 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     if (controller == null || _isStreaming) return;
     await controller.startImageStream((image) => _onFrame(image, controller.description));
     _isStreaming = true;
+  }
+
+  /// Tears down the current CameraController and brings up a brand new one
+  /// — used after a hard takePicture() failure, since on some devices the
+  /// Camera2 session stays wedged (every further capture in that same
+  /// session fails too) once a stream-reconfigure gets rejected.
+  Future<void> _reinitializeCamera() async {
+    final old = _controller;
+    _isStreaming = false;
+    if (mounted) setState(() => _controller = null);
+    if (old != null) {
+      try {
+        await old.dispose();
+      } catch (_) {
+        // Already in a bad state — nothing to clean up further.
+      }
+    }
+    await _detector?.close();
+    _detector = null;
+    if (!mounted) return;
+    await _init();
   }
 
   /// Downloads the enrolled profile photo and computes its embedding once,
@@ -239,9 +277,39 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       if (_isStreaming) {
         await controller.stopImageStream();
         _isStreaming = false;
+        // Some devices' Camera2 HAL rejects takePicture() fired immediately
+        // after stopImageStream() — the session hasn't finished dropping
+        // the ImageAnalysis stream yet, so it briefly still sees all 3
+        // (Preview+ImageCapture+ImageAnalysis) and rejects that combo
+        // ("Unsupported set of inputs/outputs provided"). A short settle
+        // delay avoids that race.
+        await Future<void>.delayed(const Duration(milliseconds: 300));
       }
-      final file = await controller.takePicture();
+
+      final XFile file;
+      try {
+        file = await controller.takePicture();
+      } catch (_) {
+        // Camera2/OEM capture failure — surface it instead of leaving the
+        // shutter silently re-enabled with no feedback (the exact "jepret
+        // tidak tersimpan" symptom). A plain retry on the SAME controller
+        // can loop forever if the session is wedged (see
+        // _maxCaptureFailures doc) — reinit a fresh controller instead, and
+        // give up for good past the cap so the user can back out and
+        // re-enter the screen for a truly clean start.
+        _captureFailures++;
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context)!.cameraCaptureFailedMessage)));
+        if (_captureFailures > _maxCaptureFailures) {
+          Navigator.of(context).pop();
+          return;
+        }
+        await _reinitializeCamera();
+        return;
+      }
       if (!mounted) return;
+      _captureFailures = 0;
 
       if (!widget._matchesProfile) {
         Navigator.of(context).pop(file.path);
@@ -260,14 +328,30 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       }
 
       setState(() => _matchAttempts++);
-      final result = await _matchAgainstProfile(file.path);
+      // On-device TFLite inference can throw on some OEM builds — never let
+      // that strand the flow silently. Fall back to "not checked" (same as
+      // a null embedding) and still finish with the captured photo, instead
+      // of leaving the shutter re-enabled with nothing having happened.
+      FaceMatchResult result;
+      try {
+        result = await _matchAgainstProfile(file.path);
+      } catch (_) {
+        result = const FaceMatchResult(0, FaceMatchStatus.notChecked);
+      }
       if (!mounted) return;
       setState(() => _matchResult = result);
 
       final exhausted = _matchAttempts >= _maxFaceMatchAttempts;
-      if (result.status == FaceMatchStatus.match || exhausted) {
+      final needsRetry = result.status == FaceMatchStatus.uncertain || result.status == FaceMatchStatus.mismatch;
+      if (!needsRetry || exhausted) {
         if (exhausted && result.status != FaceMatchStatus.match) {
           setState(() => _gaveUpOnMatch = true);
+        }
+        // Brief pause so "Wajah cocok!" is actually readable instead of an
+        // instant cut straight to the next screen.
+        if (result.status == FaceMatchStatus.match) {
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+          if (!mounted) return;
         }
         Navigator.of(context).pop({
           'path': file.path,
@@ -301,6 +385,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     if (!_liveFaceOk) return t.positionYourFaceStatus;
     if (!widget._matchesProfile) return t.liveFaceDetectedStatus;
     if (_gaveUpOnMatch) return t.faceMatchTapToContinueStatus;
+    if (_isCapturing && _matchResult.status == FaceMatchStatus.match) return t.faceMatchedStatus;
     if (_isCapturing) return t.verifyingFaceStatus;
     if (_matchAttempts > 0) return t.faceMismatchRetryingStatus;
     return t.liveFaceDetectedStatus;
