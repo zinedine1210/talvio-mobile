@@ -26,7 +26,7 @@
 
 | 📱 File Dart | 🧩 Layar | 🧪 Test | 🔌 Endpoint API | 🗂️ Modul Backend |
 |:---:|:---:|:---:|:---:|:---:|
-| **69** | **32** | **36 passing** | **62** | **11** |
+| **86** | **46** | **36 passing** | **67** | **11** |
 
 </div>
 
@@ -43,6 +43,7 @@
 - [Struktur Proyek](#struktur-proyek)
 - [Menjalankan Secara Lokal](#menjalankan-secara-lokal)
 - [Progress](#progress)
+- [Dokumentasi UML](#dokumentasi-uml)
 - [Tim Pengembang](#tim-pengembang)
 
 ## Kenapa Talvio
@@ -155,7 +156,7 @@ stateDiagram-v2
 ## Referensi API
 
 <details>
-<summary><b>62 endpoint, dikelompokkan per modul (klik untuk buka)</b></summary>
+<summary><b>67 endpoint, dikelompokkan per modul (klik untuk buka)</b></summary>
 <br/>
 
 | Modul | Endpoint |
@@ -216,7 +217,22 @@ flutter run --dart-define=API_BASE_URL=http://<ip-backend>:8081
 | 6 | Payroll | ✅ |
 | 7 | Pengumuman, dashboard, notifikasi in-app | ✅ |
 
-Detail lengkap tiap kebutuhan fungsional/non-fungsional: lihat [`SRS.md`](./SRS.md).
+Detail lengkap tiap kebutuhan fungsional/non-fungsional: lihat [`SRS_Kelompok 3.pdf`](./SRS_Kelompok%203.pdf).
+
+## Dokumentasi UML
+
+Tugas Rekayasa Perangkat Lunak, dibuat berdasarkan sistem Talvio yang sebenarnya (bukan contoh generik).
+
+- [x] [Desain Figma](https://www.figma.com/design/u71ZBqEkA7JzoCfoOQCuNo/Talvio?node-id=1-61&p=f&t=RQaqLMxhF5fZqVsf-0)
+- [x] [Use Case Diagram](https://app.diagrams.net/#G1QBJ3MdgNIFTdu57USKDvqCQ35i_suv76#%7B%22pageId%22%3A%224o1dcDgJ-3b9LBgPc4fq%22%7D)
+- [x] [Activity Diagram](https://app.diagrams.net/#G1QBJ3MdgNIFTdu57USKDvqCQ35i_suv76#%7B%22pageId%22%3A%22XAgKsTMK8KjJrySv46gA%22%7D)
+- [x] [Sequence Diagram](https://app.diagrams.net/#G1QBJ3MdgNIFTdu57USKDvqCQ35i_suv76#%7B%22pageId%22%3A%22wB4YMA15K5CTAmcyD7ON%22%7D)
+- [x] [State Diagram HR](https://app.diagrams.net/#G1QBJ3MdgNIFTdu57USKDvqCQ35i_suv76#%7B%22pageId%22%3A%22eX-l3HYi6hvrXMxnWAc7%22%7D)
+- [x] [State Diagram Karyawan](https://app.diagrams.net/#G1QBJ3MdgNIFTdu57USKDvqCQ35i_suv76#%7B%22pageId%22%3A%223rERcR2Dnczq-AJLcoHC%22%7D)
+- [x] [Class Diagram](https://app.diagrams.net/#G1QBJ3MdgNIFTdu57USKDvqCQ35i_suv76#%7B%22pageId%22%3A%22qCH8nvdlj9Bhj-ZHw-lF%22%7D)
+- [x] [Object Diagram](https://app.diagrams.net/#G1QBJ3MdgNIFTdu57USKDvqCQ35i_suv76#%7B%22pageId%22%3A%22RQh_0sdt3afVbC8N4Hr6%22%7D)
+- [x] [Deployment Diagram](https://app.diagrams.net/#G1QBJ3MdgNIFTdu57USKDvqCQ35i_suv76#%7B%22pageId%22%3A%22fOwBbhYUbR6GrOBD7k8g%22%7D)
+- [x] [Test Case (Black-Box & White-Box)](https://docs.google.com/spreadsheets/d/1oCkihB85JRCNpwDmMdBWMJdH3lt9MZSzsr59uGtn_fg/edit?hl=id&gid=482033157#gid=482033157)
 
 ## Tim Pengembang
 
